@@ -69,6 +69,8 @@ export default function AcoesPainel({
   onEditar,
   onRemover,
   onSelecionar,
+  ponto,
+  onPonto,
 }: {
   acoes: Acao[]
   pecas: Peca[]
@@ -82,6 +84,9 @@ export default function AcoesPainel({
   onEditar: (id: string) => void
   onRemover: (id: string) => void
   onSelecionar: (id: string) => void
+  // Pontos da jogada (basquete): o instante k mostra a prancheta antes dele; k = total é o fim da jogada.
+  ponto?: number
+  onPonto?: (k: number) => void
 }) {
   const instantes = agruparPorInstante(acoes)
 
@@ -96,7 +101,13 @@ export default function AcoesPainel({
             const ordem = grupo[0].ordem
             const anterior = instantes[index - 1]
             return (
-              <li key={ordem} className="rounded-xl border border-slate-200 p-2">
+              <li
+                key={ordem}
+                onClick={onPonto && (() => onPonto(index))}
+                className={`rounded-xl border p-2 ${onPonto ? 'cursor-pointer' : ''} ${
+                  ponto === index ? 'border-brand-500 ring-2 ring-brand-100' : 'border-slate-200'
+                }`}
+              >
                 <div className="mb-1.5 flex items-center justify-between pl-1">
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Instante {index + 1}
@@ -165,6 +176,21 @@ export default function AcoesPainel({
               </li>
             )
           })}
+          {onPonto && (
+            <li>
+              <button
+                type="button"
+                onClick={() => onPonto(instantes.length)}
+                className={`w-full rounded-xl border px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide ${
+                  ponto === instantes.length
+                    ? 'border-brand-500 text-brand-700 ring-2 ring-brand-100'
+                    : 'border-dashed border-slate-300 text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                Fim da jogada
+              </button>
+            </li>
+          )}
         </ol>
       )}
     </aside>
