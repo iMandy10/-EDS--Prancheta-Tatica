@@ -7,9 +7,11 @@ export interface Peca {
   tipo: TipoPeca
   x: number
   y: number
+  // Só na bola: id do jogador que está com ela (ausente ou null = bola solta em x, y).
+  posse?: string | null
 }
 
-export type TipoAcao = 'movimentacao' | 'passe'
+export type TipoAcao = 'movimentacao' | 'passe' | 'bloqueio' | 'drible'
 
 export interface PontoDestino {
   x: number
