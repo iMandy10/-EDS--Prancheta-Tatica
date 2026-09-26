@@ -88,6 +88,11 @@ instantes rodam em ordem crescente. Na animação, cada instante dura 1 s. O bac
 cenas em que uma peça faz mais de uma ação no mesmo instante, ou em que mais de uma ação move
 a bola no mesmo instante (passe, drible ou movimentação da própria bola).
 
+No basquete a bola tem **posse**: a peça da bola pode ter o campo opcional `posse` com o `id` do
+jogador que está com ela (sem o campo, ou `null`, a bola está solta em `x`, `y`). A bola acompanha
+quem tem a posse em qualquer deslocamento, só quem tem a posse passa ou dribla, e o passe entrega a
+posse ao jogador em cuja área de identificação a ponta da seta cai.
+
 O atleta busca a cena de uma jogada publicada em
 `GET /teams/{team_id}/plays/published/{play_id}`, com o header `X-Chave-Atleta`.
 `GET /plays/{play_id}` é exclusiva do treinador (header `X-Chave-Treinador`).
