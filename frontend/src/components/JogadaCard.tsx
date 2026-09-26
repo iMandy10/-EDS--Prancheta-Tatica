@@ -34,15 +34,13 @@ export default function JogadaCard({
       {jogada.descricao && <p className="text-sm text-gray-600">{jogada.descricao}</p>}
 
       <div className="mt-1 flex flex-wrap gap-2">
-        {jogada.status === 'rascunho' && (
-          <button
-            type="button"
-            onClick={() => onReabrir(jogada)}
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700"
-          >
-            Reabrir no editor
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => onReabrir(jogada)}
+          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700"
+        >
+          Reabrir no editor
+        </button>
         <button
           type="button"
           onClick={() => onEditar(jogada)}
