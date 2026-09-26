@@ -12,15 +12,19 @@ function descreverDestino(destino: Acao['destino']) {
 export default function AcoesPainel({
   acoes,
   editandoId,
+  selecionadaId,
   onMover,
   onEditar,
   onRemover,
+  onSelecionar,
 }: {
   acoes: Acao[]
   editandoId: string | null
+  selecionadaId: string | null
   onMover: (id: string, direcao: -1 | 1) => void
   onEditar: (id: string) => void
   onRemover: (id: string) => void
+  onSelecionar: (id: string) => void
 }) {
   const ordenadas = [...acoes].sort((a, b) => a.ordem - b.ordem)
 
@@ -34,7 +38,10 @@ export default function AcoesPainel({
           {ordenadas.map((acao, index) => (
             <li
               key={acao.id}
-              className="flex items-center justify-between gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm"
+              onClick={() => onSelecionar(acao.id)}
+              className={`flex cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm ${
+                selecionadaId === acao.id ? 'border-amber-400 bg-amber-50' : 'border-gray-200'
+              }`}
             >
               <span>
                 <span className="font-medium">{acao.ordem}.</span> {ROTULO_TIPO[acao.tipo]} de {acao.origem} para{' '}
@@ -44,7 +51,10 @@ export default function AcoesPainel({
               <span className="flex gap-1">
                 <button
                   type="button"
-                  onClick={() => onMover(acao.id, -1)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onMover(acao.id, -1)
+                  }}
                   disabled={index === 0}
                   aria-label="Mover ação para cima"
                   className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
@@ -53,7 +63,10 @@ export default function AcoesPainel({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onMover(acao.id, 1)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onMover(acao.id, 1)
+                  }}
                   disabled={index === ordenadas.length - 1}
                   aria-label="Mover ação para baixo"
                   className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
@@ -62,7 +75,10 @@ export default function AcoesPainel({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onEditar(acao.id)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onEditar(acao.id)
+                  }}
                   aria-label="Editar seta"
                   className="rounded px-2 py-1 text-blue-600 hover:bg-blue-50"
                 >
@@ -70,7 +86,10 @@ export default function AcoesPainel({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRemover(acao.id)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onRemover(acao.id)
+                  }}
                   aria-label="Remover seta"
                   className="rounded px-2 py-1 text-red-600 hover:bg-red-50"
                 >

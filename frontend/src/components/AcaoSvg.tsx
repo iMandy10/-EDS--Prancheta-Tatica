@@ -36,23 +36,30 @@ export default function AcaoSvg({
   x2,
   y2,
   tipo,
+  destacada,
 }: {
   x1: number
   y1: number
   x2: number
   y2: number
   tipo: TipoAcao
+  destacada?: boolean
 }) {
   return (
-    <line
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
-      stroke={CORES_ACAO[tipo]}
-      strokeWidth={3}
-      strokeDasharray={TRACEJADO_ACAO[tipo]}
-      markerEnd={`url(#seta-ponta-${tipo})`}
-    />
+    <>
+      {destacada && (
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#facc15" strokeWidth={9} strokeLinecap="round" opacity={0.6} />
+      )}
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={CORES_ACAO[tipo]}
+        strokeWidth={3}
+        strokeDasharray={TRACEJADO_ACAO[tipo]}
+        markerEnd={`url(#seta-ponta-${tipo})`}
+      />
+    </>
   )
 }

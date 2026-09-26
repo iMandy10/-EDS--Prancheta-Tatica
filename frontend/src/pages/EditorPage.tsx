@@ -43,6 +43,7 @@ export default function EditorPage() {
   const [modoDesenho, setModoDesenho] = useState<TipoAcao | null>(null)
   const [origemSelecionada, setOrigemSelecionada] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [acaoSelecionadaId, setAcaoSelecionadaId] = useState<string | null>(null)
   const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
 
   useEffect(() => {
@@ -112,6 +113,13 @@ export default function EditorPage() {
       setModoDesenho(null)
       setOrigemSelecionada(null)
     }
+    if (acaoSelecionadaId === id) {
+      setAcaoSelecionadaId(null)
+    }
+  }
+
+  function alternarSelecaoAcao(id: string) {
+    setAcaoSelecionadaId((atual) => (atual === id ? null : id))
   }
 
   function moverAcao(id: string, direcao: -1 | 1) {
@@ -333,6 +341,7 @@ export default function EditorPage() {
                 x2={destino.x}
                 y2={destino.y}
                 tipo={acao.tipo}
+                destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
               />
             )
           })}
@@ -341,9 +350,11 @@ export default function EditorPage() {
         <AcoesPainel
           acoes={cena.acoes}
           editandoId={editandoId}
+          selecionadaId={acaoSelecionadaId}
           onMover={moverAcao}
           onEditar={iniciarEdicaoAcao}
           onRemover={removerAcao}
+          onSelecionar={alternarSelecaoAcao}
         />
       </div>
     </div>
