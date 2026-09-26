@@ -19,8 +19,10 @@ export default function WelcomeBackPage() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-2 p-6 text-center">
-      <h1 className="text-2xl font-semibold text-gray-900">Bem-vindo de volta, {team.nome}!</h1>
-      <p className="text-gray-600">{team.modalidade === 'futebol' ? 'Futebol' : 'Basquete'}</p>
+      <h1 className="text-2xl font-semibold text-gray-900">Bem-vindo de volta!</h1>
+      <p className="text-gray-600">
+        Time: <strong>{team.nome}</strong> · {team.modalidade === 'futebol' ? 'Futebol' : 'Basquete'}
+      </p>
       <button
         type="button"
         onClick={() => navigate('/times/quadra')}
