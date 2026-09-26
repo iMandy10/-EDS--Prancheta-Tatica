@@ -53,3 +53,27 @@ export function jogadorNaArea(ponto: { x: number; y: number }, pecas: Peca[], or
     .filter((peca) => peca.tipo !== 'bola' && peca.id !== origemId && distancia(peca) <= RAIO_IDENTIFICACAO)
     .sort((a, b) => distancia(a) - distancia(b))[0]
 }
+
+// Posse de bola: a bola fica encostada ao lado de quem está com ela, sem cobrir o número.
+const DESLOCAMENTO_BOLA = 13
+
+export function aoLadoDoJogador(ponto: { x: number; y: number }) {
+  return { x: ponto.x + DESLOCAMENTO_BOLA, y: ponto.y + DESLOCAMENTO_BOLA }
+}
+
+// Recoloca a bola ao lado de quem tem a posse (depois de mover ou remover jogadores).
+export function acompanharPosse(pecas: Peca[]): Peca[] {
+  return pecas.map((peca) => {
+    if (peca.tipo !== 'bola' || !peca.posse) return peca
+    const portador = pecas.find((outra) => outra.id === peca.posse)
+    return portador ? { ...peca, ...aoLadoDoJogador(portador) } : { ...peca, posse: null }
+  })
+}
+
+// Depois de a bola ser solta: fica com o jogador em cuja área ela caiu, ou solta onde está.
+export function atribuirPosse(pecas: Peca[]): Peca[] {
+  const bola = pecas.find((peca) => peca.tipo === 'bola')
+  if (!bola) return pecas
+  const jogador = jogadorNaArea(bola, pecas, bola.id)
+  return acompanharPosse(pecas.map((peca) => (peca === bola ? { ...peca, posse: jogador?.id ?? null } : peca)))
+}
