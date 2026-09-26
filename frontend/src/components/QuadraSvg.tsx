@@ -72,8 +72,45 @@ function BasqueteMarkings() {
       <circle cx={400} cy={250} r={50} fill="none" stroke="white" strokeWidth={2} />
       <rect x={20} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
       <rect x={630} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
+      <circle cx={170} cy={250} r={25} fill="none" stroke="white" strokeWidth={2} />
+      <circle cx={630} cy={250} r={25} fill="none" stroke="white" strokeWidth={2} />
       <path d="M 20 90 A 260 260 0 0 1 20 410" fill="none" stroke="white" strokeWidth={2} />
       <path d="M 780 90 A 260 260 0 0 0 780 410" fill="none" stroke="white" strokeWidth={2} />
+      {/* tabelas */}
+      <line x1={30} y1={210} x2={30} y2={290} stroke="white" strokeWidth={4} />
+      <line x1={770} y1={210} x2={770} y2={290} stroke="white" strokeWidth={4} />
+    </>
+  )
+}
+
+function MolduraPrancheta() {
+  return (
+    <>
+      <defs>
+        <linearGradient id="madeira-moldura" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#c98a4f" />
+          <stop offset="50%" stopColor="#a86b37" />
+          <stop offset="100%" stopColor="#8f5a2c" />
+        </linearGradient>
+        <linearGradient id="metal-presilha" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e2e8f0" />
+          <stop offset="45%" stopColor="#94a3b8" />
+          <stop offset="100%" stopColor="#64748b" />
+        </linearGradient>
+      </defs>
+
+      {/* base de madeira da prancheta, por trás da quadra */}
+      <rect x={-20} y={-58} width={840} height={578} rx={18} fill="url(#madeira-moldura)" />
+      <rect x={-20} y={-58} width={840} height={578} rx={18} fill="none" stroke="#6b4423" strokeWidth={1.5} />
+
+      {/* furos de encadernação, no topo */}
+      <circle cx={40} cy={-38} r={5} fill="#5c3a1e" />
+      <circle cx={760} cy={-38} r={5} fill="#5c3a1e" />
+
+      {/* presilha metálica central */}
+      <rect x={330} y={-56} width={140} height={40} rx={8} fill="url(#metal-presilha)" stroke="#475569" strokeWidth={1} />
+      <rect x={350} y={-46} width={100} height={12} rx={4} fill="#334155" />
+      <circle cx={400} cy={-36} r={6} fill="#cbd5e1" stroke="#475569" strokeWidth={1} />
     </>
   )
 }
@@ -91,10 +128,12 @@ export default function QuadraSvg({
   onPointerMove?: (event: PointerEvent<SVGSVGElement>) => void
   onPointerUp?: (event: PointerEvent<SVGSVGElement>) => void
 }) {
+  const viewBox = quadra === 'basquete' ? '-20 -58 840 578' : `0 0 ${WIDTH} ${HEIGHT}`
+
   return (
     <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10"
+      viewBox={viewBox}
+      className={quadra === 'basquete' ? 'w-full max-w-3xl' : 'w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10'}
       role="img"
       aria-label={`Quadra de ${quadra}`}
       onPointerDown={onPointerDown}
@@ -108,11 +147,12 @@ export default function QuadraSvg({
           <stop offset="100%" stopColor="#b97e46" />
         </linearGradient>
       </defs>
+      {quadra === 'basquete' && <MolduraPrancheta />}
       {quadra === 'futebol' ? (
         <FutebolMarkings />
       ) : (
         <>
-          <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="url(#madeira-quadra)" />
+          <rect x={0} y={0} width={WIDTH} height={HEIGHT} rx={4} fill="url(#madeira-quadra)" />
           <BasqueteMarkings />
         </>
       )}
