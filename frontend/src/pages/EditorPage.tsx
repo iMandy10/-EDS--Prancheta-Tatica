@@ -5,8 +5,9 @@ import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import AcoesPainel from '../components/AcoesPainel'
+import SalvarJogadaModal from '../components/SalvarJogadaModal'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
-import type { Modalidade } from '../lib/api'
+import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 
 const PECAS_INICIAIS: Peca[] = [
   { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
@@ -44,6 +45,9 @@ export default function EditorPage() {
   const [origemSelecionada, setOrigemSelecionada] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [acaoSelecionadaId, setAcaoSelecionadaId] = useState<string | null>(null)
+  const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null)
   const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
 
   useEffect(() => {
@@ -221,6 +225,26 @@ export default function EditorPage() {
     }
   }
 
+  async function handleSalvarJogada(dados: { titulo: string; descricao: string; status: StatusJogada }) {
+    if (!team || !cena || !chave) return
+
+    setSalvando(true)
+    setErroSalvar(null)
+    try {
+      await createPlay(team.id, chave, {
+        titulo: dados.titulo,
+        descricao: dados.descricao || null,
+        status: dados.status,
+        cena,
+      })
+      setModalSalvarAberto(false)
+    } catch {
+      setErroSalvar('Não foi possível salvar a jogada. Verifique se o servidor está rodando e tente novamente.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   function handleRemoverSelecionado() {
     if (!selectedId) return
     setCena((prev) => (prev ? { ...prev, pecas: prev.pecas.filter((peca) => peca.id !== selectedId) } : prev))
@@ -297,6 +321,13 @@ export default function EditorPage() {
         >
           {modoDesenho === 'passe' ? 'Desenhando passe (clique pra sair)' : 'Desenhar passe'}
         </button>
+        <button
+          type="button"
+          onClick={() => setModalSalvarAberto(true)}
+          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          Salvar jogada
+        </button>
       </div>
 
       {modoDesenho && (
@@ -357,6 +388,14 @@ export default function EditorPage() {
           onSelecionar={alternarSelecaoAcao}
         />
       </div>
+
+      <SalvarJogadaModal
+        aberto={modalSalvarAberto}
+        salvando={salvando}
+        erro={erroSalvar}
+        onFechar={() => setModalSalvarAberto(false)}
+        onSalvar={handleSalvarJogada}
+      />
     </div>
   )
 }
