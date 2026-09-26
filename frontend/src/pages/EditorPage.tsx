@@ -78,6 +78,17 @@ export default function EditorPage() {
     }
   }, [team, cena, cenaInicial])
 
+  useEffect(() => {
+    function sairComEsc(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setModoDesenho(null)
+      setOrigemSelecionada(null)
+      setEditandoId(null)
+    }
+    window.addEventListener('keydown', sairComEsc)
+    return () => window.removeEventListener('keydown', sairComEsc)
+  }, [])
+
   function alternarModoDesenho(tipo: TipoAcao) {
     return () => {
       setModoDesenho((atual) => (atual === tipo ? null : tipo))
@@ -400,6 +411,8 @@ export default function EditorPage() {
                 Limpar prancheta
               </Button>
             )}
+            {cena.quadra === 'futebol' && (
+            <>
             <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
             <Button
               onClick={alternarModoDesenho('movimentacao')}
@@ -417,6 +430,8 @@ export default function EditorPage() {
             >
               {modoDesenho === 'passe' ? 'Desenhando... (clique p/ sair)' : 'Desenhar passe'}
             </Button>
+            </>
+            )}
           </div>
 
           <Button onClick={() => setModalSalvarAberto(true)} variant="primary">
@@ -424,7 +439,15 @@ export default function EditorPage() {
           </Button>
         </div>
 
-        {cena.quadra === 'basquete' && <EstojoPecas pecas={cena.pecas} onAlternar={alternarPecaDoEstojo} />}
+        {cena.quadra === 'basquete' && (
+          <EstojoPecas
+            pecas={cena.pecas}
+            onAlternar={alternarPecaDoEstojo}
+            ferramenta={modoDesenho}
+            onFerramenta={(tipo) => alternarModoDesenho(tipo)()}
+            ferramentasBloqueadas={editandoId !== null}
+          />
+        )}
 
         {modoDesenho && (
           <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">

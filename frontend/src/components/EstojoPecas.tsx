@@ -1,4 +1,5 @@
-import type { Peca, TipoPeca } from '../types/cena'
+import type { Peca, TipoAcao, TipoPeca } from '../types/cena'
+import AcaoSvg, { SetaMarkerDefs } from './AcaoSvg'
 import { POSICOES_BASQUETE, TIPO_ARRASTE_PECA } from '../lib/basquete'
 
 const CORES: Record<TipoPeca, string> = {
@@ -13,14 +14,28 @@ const GRUPOS: { titulo: string; tipo: TipoPeca; ids: string[] }[] = [
   { titulo: 'Bola', tipo: 'bola', ids: ['bola'] },
 ]
 
+const FERRAMENTAS: { tipo: TipoAcao; rotulo: string }[] = [
+  { tipo: 'movimentacao', rotulo: 'Movimentação' },
+  { tipo: 'passe', rotulo: 'Passe' },
+  { tipo: 'bloqueio', rotulo: 'Bloqueio' },
+  { tipo: 'drible', rotulo: 'Drible' },
+]
+
 // Estojo do basquete: cada peça tem identidade própria e o treinador escolhe quais levar para a quadra.
 // Arrastar uma peça fora de quadra e soltar na quadra a posiciona; clicar alterna entre estojo e quadra.
+// As setas também ficam no estojo: com uma ferramenta ativa, o treinador arrasta de uma peça até o destino.
 export default function EstojoPecas({
   pecas,
   onAlternar,
+  ferramenta,
+  onFerramenta,
+  ferramentasBloqueadas,
 }: {
   pecas: Peca[]
   onAlternar: (id: string, tipo: TipoPeca) => void
+  ferramenta: TipoAcao | null
+  onFerramenta: (tipo: TipoAcao) => void
+  ferramentasBloqueadas: boolean
 }) {
   return (
     <div className="flex flex-wrap gap-x-6 gap-y-3 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-900/5">
@@ -57,6 +72,30 @@ export default function EstojoPecas({
           </div>
         </div>
       ))}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Setas</span>
+        <div className="flex gap-1.5">
+          {FERRAMENTAS.map(({ tipo, rotulo }) => (
+            <button
+              key={tipo}
+              type="button"
+              onClick={() => onFerramenta(tipo)}
+              disabled={ferramentasBloqueadas}
+              aria-pressed={ferramenta === tipo}
+              title={ferramenta === tipo ? `${rotulo}: clique (ou Esc) para parar de desenhar` : `Desenhar ${rotulo.toLowerCase()}`}
+              className={`flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 disabled:opacity-40 ${
+                ferramenta === tipo ? 'bg-brand-50 ring-2 ring-brand-500' : 'hover:bg-slate-100'
+              }`}
+            >
+              <svg viewBox="0 0 60 20" className="h-5 w-14">
+                <SetaMarkerDefs />
+                <AcaoSvg x1={4} y1={10} x2={54} y2={10} tipo={tipo} />
+              </svg>
+              <span className="text-[10px] font-medium text-slate-500">{rotulo}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
