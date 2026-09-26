@@ -33,7 +33,7 @@ function AnimacaoJogada({ cena }: { cena: Cena }) {
 
   return (
     <>
-      <QuadraSvg quadra={cena.quadra}>
+      <QuadraSvg quadra={cena.quadra} visualizacao={cena.visualizacao ?? 'completa'}>
         <SetaMarkerDefs />
         {setas.map((passo) => (
           <g key={passo.acao.id} opacity={passo.instante === instanteAtual ? 1 : 0.35}>
