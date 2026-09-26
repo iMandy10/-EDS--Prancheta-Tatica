@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import { clearChaveTreinador } from '../lib/storage'
 import Button from '../components/Button'
+import ChaveAtletaModal from '../components/ChaveAtletaModal'
 import { LogOutIcon } from '../components/icons'
 
 export default function WelcomeBackPage() {
   const { chave, team, notFound } = useTeamSession()
   const navigate = useNavigate()
+  const [modalChaveAberto, setModalChaveAberto] = useState(false)
 
   if (!chave || notFound) {
     return <Navigate to="/" replace />
@@ -38,6 +41,9 @@ export default function WelcomeBackPage() {
         <Button onClick={() => navigate('/times/quadra')} variant="primary" className="mt-6 w-full py-2.5">
           Ir para o editor
         </Button>
+        <Button onClick={() => setModalChaveAberto(true)} variant="outline" className="mt-2 w-full py-2.5">
+          Ver chave do atleta
+        </Button>
         <button
           type="button"
           onClick={handleSair}
@@ -47,6 +53,13 @@ export default function WelcomeBackPage() {
           Sair
         </button>
       </div>
+
+      <ChaveAtletaModal
+        aberto={modalChaveAberto}
+        nomeTime={team.nome}
+        chaveAtleta={team.chave_atleta}
+        onFechar={() => setModalChaveAberto(false)}
+      />
     </div>
   )
 }
