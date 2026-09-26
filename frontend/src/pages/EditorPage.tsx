@@ -94,6 +94,7 @@ export default function EditorPage() {
       setOrigemSelecionada(null)
       setEditandoId(null)
       setPontaSeta(null)
+      setAcaoSelecionadaId(null)
     }
     window.addEventListener('keydown', sairComEsc)
     return () => window.removeEventListener('keydown', sairComEsc)
@@ -105,6 +106,14 @@ export default function EditorPage() {
       setOrigemSelecionada(null)
       setEditandoId(null)
     }
+  }
+
+  function selecionarSeta(id: string) {
+    setAcaoSelecionadaId(id)
+    setSelectedId(null)
+    setModoDesenho(null)
+    setOrigemSelecionada(null)
+    setEditandoId(null)
   }
 
   function iniciarEdicaoAcao(id: string) {
@@ -229,6 +238,7 @@ export default function EditorPage() {
 
       setDraggingId(id)
       setSelectedId(id)
+      if (cena?.quadra === 'basquete') setAcaoSelecionadaId(null)
     }
   }
 
@@ -243,6 +253,7 @@ export default function EditorPage() {
     }
 
     setSelectedId(null)
+    if (cena?.quadra === 'basquete') setAcaoSelecionadaId(null)
   }
 
   function handleSvgPointerMove(event: PointerEvent<SVGSVGElement>) {
@@ -357,7 +368,11 @@ export default function EditorPage() {
   }
 
   function handleRemoverSelecionado() {
-    if (selectedId) removerPeca(selectedId)
+    if (cena?.quadra === 'basquete' && acaoSelecionadaId) {
+      removerAcao(acaoSelecionadaId)
+    } else if (selectedId) {
+      removerPeca(selectedId)
+    }
   }
 
   function limparPrancheta() {
@@ -421,8 +436,18 @@ export default function EditorPage() {
   }
   const max = MAX_JOGADORES[cena.quadra]
   const selecionada = cena.pecas.find((peca) => peca.id === selectedId)
-  const podeRemover = selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete')
+  const setaSelecionadaNoBasquete = cena.quadra === 'basquete' && acaoSelecionadaId !== null
+  const podeRemover =
+    setaSelecionadaNoBasquete || (selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete'))
   const origemDaSeta = cena.pecas.find((peca) => peca.id === origemSelecionada)
+  // Geometria de cada seta.
+  const setasNaQuadra = cena.acoes.flatMap((acao) => {
+    const origem = cena.pecas.find((peca) => peca.id === acao.origem)
+    const destino =
+      typeof acao.destino === 'string' ? cena.pecas.find((peca) => peca.id === acao.destino) : acao.destino
+    if (!origem || !destino) return []
+    return [{ acao, x1: origem.x, y1: origem.y, x2: destino.x, y2: destino.y }]
+  })
 
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
@@ -523,6 +548,24 @@ export default function EditorPage() {
           onPointerUp={handleSvgPointerUp}
         >
           <SetaMarkerDefs />
+          {cena.quadra === 'basquete' &&
+            setasNaQuadra.map(({ acao, x1, y1, x2, y2 }) => (
+              <line
+                key={`clique-${acao.id}`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="transparent"
+                strokeWidth={14}
+                className="cursor-pointer touch-none"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  selecionarSeta(acao.id)
+                }}
+              />
+            ))}
           {cena.pecas.map((peca) => (
             <PecaSvg
               key={peca.id}
@@ -534,24 +577,17 @@ export default function EditorPage() {
             />
           ))}
           <g pointerEvents="none">
-          {cena.acoes.map((acao) => {
-            const origemPeca = cena.pecas.find((peca) => peca.id === acao.origem)
-            const destino = typeof acao.destino === 'string'
-              ? cena.pecas.find((peca) => peca.id === acao.destino)
-              : acao.destino
-            if (!origemPeca || !destino) return null
-            return (
-              <AcaoSvg
-                key={acao.id}
-                x1={origemPeca.x}
-                y1={origemPeca.y}
-                x2={destino.x}
-                y2={destino.y}
-                tipo={acao.tipo}
-                destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
-              />
-            )
-          })}
+          {setasNaQuadra.map(({ acao, x1, y1, x2, y2 }) => (
+            <AcaoSvg
+              key={acao.id}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              tipo={acao.tipo}
+              destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
+            />
+          ))}
           {modoDesenho && pontaSeta && origemDaSeta && (
             <g opacity={0.6}>
               <AcaoSvg
