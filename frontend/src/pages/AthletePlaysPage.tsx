@@ -55,6 +55,11 @@ export default function AthletePlaysPage() {
 
         {jogadas === null ? (
           !erro && <p className="text-slate-500">Carregando...</p>
+        ) : jogadas.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center">
+            <p className="text-slate-500">Nenhuma jogada publicada ainda.</p>
+            <p className="mt-1 text-sm text-slate-400">Quando seu treinador publicar uma jogada, ela aparece aqui.</p>
+          </div>
         ) : (
           <ul className="flex flex-col gap-3">
             {jogadas.map((jogada) => (
