@@ -17,6 +17,16 @@ export interface Play {
   updated_at: string
 }
 
+export interface PlaySummary {
+  id: number
+  team_id: number
+  titulo: string
+  descricao: string | null
+  status: StatusJogada
+  created_at: string
+  updated_at: string
+}
+
 export interface Team {
   id: number
   nome: string
@@ -69,4 +79,48 @@ export async function createPlay(
   }
 
   return response.json()
+}
+
+export async function getPlays(teamId: number, chaveTreinador: string): Promise<PlaySummary[]> {
+  const response = await fetch(`${API_URL}/teams/${teamId}/plays`, {
+    headers: { 'X-Chave-Treinador': chaveTreinador },
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar as jogadas.')
+  }
+
+  return response.json()
+}
+
+export async function updatePlay(
+  playId: number,
+  chaveTreinador: string,
+  payload: Partial<{ titulo: string; descricao: string | null; status: StatusJogada }>,
+): Promise<PlaySummary> {
+  const response = await fetch(`${API_URL}/plays/${playId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Chave-Treinador': chaveTreinador,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível atualizar a jogada.')
+  }
+
+  return response.json()
+}
+
+export async function deletePlay(playId: number, chaveTreinador: string): Promise<void> {
+  const response = await fetch(`${API_URL}/plays/${playId}`, {
+    method: 'DELETE',
+    headers: { 'X-Chave-Treinador': chaveTreinador },
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível excluir a jogada.')
+  }
 }
