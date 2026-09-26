@@ -121,7 +121,9 @@ export default function AcoesPainel({
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${COR_TIPO[acao.tipo]}`} />
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${quadra === 'basquete' ? 'bg-gray-900' : COR_TIPO[acao.tipo]}`}
+                        />
                         <span className="text-slate-700">
                           {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao, pecas, quadra)}
                           {editandoId === acao.id && (

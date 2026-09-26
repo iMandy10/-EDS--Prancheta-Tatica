@@ -36,6 +36,7 @@ function AnimacaoJogada({ cena }: { cena: Cena }) {
               {...coordenadas(passo)}
               tipo={passo.acao.tipo}
               destacada={passo.instante === instanteAtual}
+              preta={cena.quadra === 'basquete'}
             />
           </g>
         ))}

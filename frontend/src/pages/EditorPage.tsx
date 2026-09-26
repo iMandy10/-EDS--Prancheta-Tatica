@@ -641,11 +641,12 @@ export default function EditorPage() {
               y2={y2}
               tipo={acao.tipo}
               destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
+              preta={cena.quadra === 'basquete'}
             />
           ))}
           {modoDesenho && previaSeta && (
             <g opacity={0.6}>
-              <AcaoSvg {...previaSeta} tipo={modoDesenho} />
+              <AcaoSvg {...previaSeta} tipo={modoDesenho} preta={cena.quadra === 'basquete'} />
             </g>
           )}
           </g>

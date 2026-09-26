@@ -7,6 +7,9 @@ export const CORES_ACAO: Record<TipoAcao, string> = {
   drible: '#0284c7',
 }
 
+// No basquete as setas são todas pretas, como numa prancheta: o tipo se distingue só pelo traço.
+const COR_PRETA = '#111827'
+
 const TRACEJADO_ACAO: Partial<Record<TipoAcao, string>> = {
   passe: '8 5',
 }
@@ -14,12 +17,16 @@ const TRACEJADO_ACAO: Partial<Record<TipoAcao, string>> = {
 // Convenção de prancheta: movimentação contínua, passe tracejado, bloqueio termina numa barra
 // perpendicular e drible é ondulado.
 export function SetaMarkerDefs() {
+  const variantes = (Object.keys(CORES_ACAO) as TipoAcao[]).flatMap((tipo) => [
+    { tipo, id: `seta-ponta-${tipo}`, cor: CORES_ACAO[tipo] },
+    { tipo, id: `seta-ponta-${tipo}-preta`, cor: COR_PRETA },
+  ])
   return (
     <defs>
-      {(Object.keys(CORES_ACAO) as TipoAcao[]).map((tipo) => (
+      {variantes.map(({ tipo, id, cor }) => (
         <marker
-          key={tipo}
-          id={`seta-ponta-${tipo}`}
+          key={id}
+          id={id}
           viewBox="0 0 10 10"
           refX={tipo === 'bloqueio' ? 5 : 8}
           refY="5"
@@ -28,9 +35,9 @@ export function SetaMarkerDefs() {
           orient="auto-start-reverse"
         >
           {tipo === 'bloqueio' ? (
-            <path d="M 5 0 L 5 10" stroke={CORES_ACAO[tipo]} strokeWidth={2.5} />
+            <path d="M 5 0 L 5 10" stroke={cor} strokeWidth={2.5} />
           ) : (
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={CORES_ACAO[tipo]} />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={cor} />
           )}
         </marker>
       ))}
@@ -63,6 +70,7 @@ export default function AcaoSvg({
   y2,
   tipo,
   destacada,
+  preta,
 }: {
   x1: number
   y1: number
@@ -70,6 +78,7 @@ export default function AcaoSvg({
   y2: number
   tipo: TipoAcao
   destacada?: boolean
+  preta?: boolean
 }) {
   const d = tipo === 'drible' ? caminhoOndulado(x1, y1, x2, y2) : `M ${x1} ${y1} L ${x2} ${y2}`
 
@@ -79,11 +88,11 @@ export default function AcaoSvg({
       <path
         d={d}
         fill="none"
-        stroke={CORES_ACAO[tipo]}
+        stroke={preta ? COR_PRETA : CORES_ACAO[tipo]}
         strokeWidth={3}
         strokeLinejoin="round"
         strokeDasharray={TRACEJADO_ACAO[tipo]}
-        markerEnd={`url(#seta-ponta-${tipo})`}
+        markerEnd={`url(#seta-ponta-${tipo}${preta ? '-preta' : ''})`}
       />
     </>
   )

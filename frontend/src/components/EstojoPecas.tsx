@@ -73,7 +73,7 @@ export default function EstojoPecas({
         </div>
       ))}
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Setas</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ações</span>
         <div className="flex gap-1.5">
           {FERRAMENTAS.map(({ tipo, rotulo }) => (
             <button
@@ -89,7 +89,7 @@ export default function EstojoPecas({
             >
               <svg viewBox="0 0 60 20" className="h-5 w-14">
                 <SetaMarkerDefs />
-                <AcaoSvg x1={4} y1={10} x2={54} y2={10} tipo={tipo} />
+                <AcaoSvg x1={4} y1={10} x2={54} y2={10} tipo={tipo} preta />
               </svg>
               <span className="text-[10px] font-medium text-slate-500">{rotulo}</span>
             </button>
