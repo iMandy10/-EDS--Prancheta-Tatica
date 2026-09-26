@@ -1,4 +1,6 @@
 import type { PlaySummary } from '../lib/api'
+import Button from './Button'
+import { EyeIcon, EyeOffIcon, FolderOpenIcon, PencilIcon, TrashIcon } from './icons'
 
 const ROTULO_STATUS: Record<PlaySummary['status'], string> = {
   rascunho: 'Rascunho',
@@ -6,8 +8,8 @@ const ROTULO_STATUS: Record<PlaySummary['status'], string> = {
 }
 
 const COR_STATUS: Record<PlaySummary['status'], string> = {
-  rascunho: 'bg-gray-200 text-gray-700',
-  publicada: 'bg-green-100 text-green-700',
+  rascunho: 'bg-slate-100 text-slate-600',
+  publicada: 'bg-emerald-100 text-emerald-700',
 }
 
 export default function JogadaCard({
@@ -24,44 +26,34 @@ export default function JogadaCard({
   onReabrir: (jogada: PlaySummary) => void
 }) {
   return (
-    <li className="flex flex-col gap-2 rounded-md border border-gray-200 p-4">
-      <div className="flex items-center gap-2">
-        <h2 className="font-medium text-gray-900">{jogada.titulo}</h2>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COR_STATUS[jogada.status]}`}>
+    <li className="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-card ring-1 ring-slate-900/5">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="font-semibold text-slate-900">{jogada.titulo}</h2>
+          {jogada.descricao && <p className="mt-0.5 text-sm text-slate-500">{jogada.descricao}</p>}
+        </div>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${COR_STATUS[jogada.status]}`}>
           {ROTULO_STATUS[jogada.status]}
         </span>
       </div>
-      {jogada.descricao && <p className="text-sm text-gray-600">{jogada.descricao}</p>}
 
-      <div className="mt-1 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => onReabrir(jogada)}
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700"
-        >
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+        <Button onClick={() => onReabrir(jogada)} variant="primary">
+          <FolderOpenIcon className="h-4 w-4" />
           Reabrir no editor
-        </button>
-        <button
-          type="button"
-          onClick={() => onEditar(jogada)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-        >
+        </Button>
+        <Button onClick={() => onEditar(jogada)} variant="outline">
+          <PencilIcon className="h-4 w-4" />
           Editar
-        </button>
-        <button
-          type="button"
-          onClick={() => onAlternarStatus(jogada)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-        >
+        </Button>
+        <Button onClick={() => onAlternarStatus(jogada)} variant="outline">
+          {jogada.status === 'publicada' ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
           {jogada.status === 'publicada' ? 'Despublicar' : 'Publicar'}
-        </button>
-        <button
-          type="button"
-          onClick={() => onExcluir(jogada)}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-        >
+        </Button>
+        <Button onClick={() => onExcluir(jogada)} variant="danger">
+          <TrashIcon className="h-4 w-4" />
           Excluir
-        </button>
+        </Button>
       </div>
     </li>
   )
