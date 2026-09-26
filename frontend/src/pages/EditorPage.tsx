@@ -4,6 +4,7 @@ import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
+import AcoesPainel from '../components/AcoesPainel'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import type { Modalidade } from '../lib/api'
 
@@ -71,6 +72,27 @@ export default function EditorPage() {
       return { ...prev, acoes: [...prev.acoes, novaAcao] }
     })
     setOrigemSelecionada(null)
+  }
+
+  function moverAcao(id: string, direcao: -1 | 1) {
+    setCena((prev) => {
+      if (!prev) return prev
+      const ordenadas = [...prev.acoes].sort((a, b) => a.ordem - b.ordem)
+      const index = ordenadas.findIndex((acao) => acao.id === id)
+      const vizinho = index + direcao
+      if (index === -1 || vizinho < 0 || vizinho >= ordenadas.length) return prev
+
+      const ordemAtual = ordenadas[index].ordem
+      const ordemVizinho = ordenadas[vizinho].ordem
+      return {
+        ...prev,
+        acoes: prev.acoes.map((acao) => {
+          if (acao.id === ordenadas[index].id) return { ...acao, ordem: ordemVizinho }
+          if (acao.id === ordenadas[vizinho].id) return { ...acao, ordem: ordemAtual }
+          return acao
+        }),
+      }
+    })
   }
 
   function handlePecaPointerDown(id: string) {
@@ -179,7 +201,7 @@ export default function EditorPage() {
   const podeRemover = selecionada && selecionada.tipo !== 'bola'
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center gap-4 p-6">
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-4 p-6">
       <h1 className="text-xl font-semibold text-gray-900">{team.nome}</h1>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -235,31 +257,35 @@ export default function EditorPage() {
         </p>
       )}
 
-      <QuadraSvg
-        quadra={cena.quadra}
-        onPointerDown={handleSvgPointerDown}
-        onPointerMove={handleSvgPointerMove}
-        onPointerUp={handleSvgPointerUp}
-      >
-        <SetaMarkerDefs />
-        {cena.pecas.map((peca) => (
-          <PecaSvg
-            key={peca.id}
-            peca={peca}
-            dragging={peca.id === draggingId}
-            selected={peca.id === selectedId || peca.id === origemSelecionada}
-            onPointerDown={handlePecaPointerDown(peca.id)}
-          />
-        ))}
-        {cena.acoes.map((acao) => {
-          const origemPeca = cena.pecas.find((peca) => peca.id === acao.origem)
-          const destino = typeof acao.destino === 'string'
-            ? cena.pecas.find((peca) => peca.id === acao.destino)
-            : acao.destino
-          if (!origemPeca || !destino) return null
-          return <AcaoSvg key={acao.id} x1={origemPeca.x} y1={origemPeca.y} x2={destino.x} y2={destino.y} />
-        })}
-      </QuadraSvg>
+      <div className="flex w-full flex-col items-start gap-6 lg:flex-row lg:justify-center">
+        <QuadraSvg
+          quadra={cena.quadra}
+          onPointerDown={handleSvgPointerDown}
+          onPointerMove={handleSvgPointerMove}
+          onPointerUp={handleSvgPointerUp}
+        >
+          <SetaMarkerDefs />
+          {cena.pecas.map((peca) => (
+            <PecaSvg
+              key={peca.id}
+              peca={peca}
+              dragging={peca.id === draggingId}
+              selected={peca.id === selectedId || peca.id === origemSelecionada}
+              onPointerDown={handlePecaPointerDown(peca.id)}
+            />
+          ))}
+          {cena.acoes.map((acao) => {
+            const origemPeca = cena.pecas.find((peca) => peca.id === acao.origem)
+            const destino = typeof acao.destino === 'string'
+              ? cena.pecas.find((peca) => peca.id === acao.destino)
+              : acao.destino
+            if (!origemPeca || !destino) return null
+            return <AcaoSvg key={acao.id} x1={origemPeca.x} y1={origemPeca.y} x2={destino.x} y2={destino.y} />
+          })}
+        </QuadraSvg>
+
+        <AcoesPainel acoes={cena.acoes} onMover={moverAcao} />
+      </div>
     </div>
   )
 }
