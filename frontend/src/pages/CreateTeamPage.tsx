@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createTeam, type Modalidade } from '../lib/api'
+import { createTeam, getTeamByChaveTreinador, type Modalidade } from '../lib/api'
 import { setChaveTreinador } from '../lib/storage'
 
 export default function CreateTeamPage() {
@@ -9,6 +9,10 @@ export default function CreateTeamPage() {
   const [modalidade, setModalidade] = useState<Modalidade | ''>('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const [chaveInput, setChaveInput] = useState('')
+  const [chaveError, setChaveError] = useState<string | null>(null)
+  const [chaveLoading, setChaveLoading] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -33,6 +37,28 @@ export default function CreateTeamPage() {
       setError('Não foi possível criar o time. Verifique se o servidor está rodando e tente novamente.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleEntrarComChave(event: FormEvent) {
+    event.preventDefault()
+    setChaveError(null)
+
+    const chave = chaveInput.trim()
+    if (!chave) {
+      setChaveError('Cole sua chave de treinador.')
+      return
+    }
+
+    setChaveLoading(true)
+    try {
+      await getTeamByChaveTreinador(chave)
+      setChaveTreinador(chave)
+      navigate('/times/bem-vindo')
+    } catch {
+      setChaveError('Chave inválida. Confira e tente novamente.')
+    } finally {
+      setChaveLoading(false)
     }
   }
 
@@ -82,6 +108,36 @@ export default function CreateTeamPage() {
         >
           {loading ? 'Criando...' : 'Criar time'}
         </button>
+      </form>
+
+      <div className="my-6 flex items-center gap-3 text-sm text-gray-400">
+        <div className="h-px flex-1 bg-gray-200" />
+        ou
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
+
+      <form onSubmit={handleEntrarComChave} className="flex flex-col gap-2">
+        <label htmlFor="chave-treinador" className="text-sm font-medium text-gray-700">
+          Já tenho um time — colar minha chave de treinador
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="chave-treinador"
+            type="text"
+            value={chaveInput}
+            onChange={(event) => setChaveInput(event.target.value)}
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            placeholder="Cole sua chave aqui"
+          />
+          <button
+            type="submit"
+            disabled={chaveLoading}
+            className="shrink-0 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+          >
+            {chaveLoading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </div>
+        {chaveError && <p className="text-sm text-red-600">{chaveError}</p>}
       </form>
     </div>
   )
