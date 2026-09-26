@@ -3,7 +3,8 @@ import { Navigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
-import type { Cena, Peca, TipoPeca } from '../types/cena'
+import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
+import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import type { Modalidade } from '../lib/api'
 
 const PECAS_INICIAIS: Peca[] = [
@@ -38,24 +39,71 @@ export default function EditorPage() {
   const [cena, setCena] = useState<Cena | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [modoDesenho, setModoDesenho] = useState<TipoAcao | null>(null)
+  const [origemSelecionada, setOrigemSelecionada] = useState<string | null>(null)
   const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
 
   useEffect(() => {
     if (team && !cena) {
-      setCena({ quadra: team.modalidade, pecas: PECAS_INICIAIS })
+      setCena({ quadra: team.modalidade, pecas: PECAS_INICIAIS, acoes: [] })
     }
   }, [team, cena])
+
+  function alternarModoDesenho(tipo: TipoAcao) {
+    return () => {
+      setModoDesenho((atual) => (atual === tipo ? null : tipo))
+      setOrigemSelecionada(null)
+    }
+  }
+
+  function criarAcao(destino: Acao['destino']) {
+    if (!modoDesenho || !origemSelecionada) return
+    setCena((prev) => {
+      if (!prev) return prev
+      const ordem = prev.acoes.length + 1
+      const novaAcao: Acao = {
+        id: `a${ordem}`,
+        tipo: modoDesenho,
+        origem: origemSelecionada,
+        destino,
+        ordem,
+      }
+      return { ...prev, acoes: [...prev.acoes, novaAcao] }
+    })
+    setOrigemSelecionada(null)
+  }
 
   function handlePecaPointerDown(id: string) {
     return (event: PointerEvent<SVGGElement>) => {
       event.preventDefault()
       event.stopPropagation()
+
+      if (modoDesenho) {
+        if (!origemSelecionada) {
+          setOrigemSelecionada(id)
+        } else if (origemSelecionada === id) {
+          setOrigemSelecionada(null)
+        } else {
+          criarAcao(id)
+        }
+        return
+      }
+
       setDraggingId(id)
       setSelectedId(id)
     }
   }
 
-  function handleSvgPointerDown() {
+  function handleSvgPointerDown(event: PointerEvent<SVGSVGElement>) {
+    if (modoDesenho && origemSelecionada) {
+      const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
+      criarAcao({
+        x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
+        y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
+      })
+      return
+    }
+
     setSelectedId(null)
   }
 
@@ -159,7 +207,33 @@ export default function EditorPage() {
         >
           Remover jogador selecionado
         </button>
+        <button
+          type="button"
+          onClick={alternarModoDesenho('movimentacao')}
+          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 ${
+            modoDesenho === 'movimentacao' ? 'bg-emerald-800 ring-2 ring-emerald-300' : 'bg-emerald-600'
+          }`}
+        >
+          {modoDesenho === 'movimentacao' ? 'Desenhando movimentação (clique pra sair)' : 'Desenhar movimentação'}
+        </button>
+        <button
+          type="button"
+          onClick={alternarModoDesenho('passe')}
+          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 ${
+            modoDesenho === 'passe' ? 'bg-purple-800 ring-2 ring-purple-300' : 'bg-purple-600'
+          }`}
+        >
+          {modoDesenho === 'passe' ? 'Desenhando passe (clique pra sair)' : 'Desenhar passe'}
+        </button>
       </div>
+
+      {modoDesenho && (
+        <p className="text-sm text-gray-600">
+          {origemSelecionada
+            ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
+            : 'Selecione a peça de origem da seta.'}
+        </p>
+      )}
 
       <QuadraSvg
         quadra={cena.quadra}
@@ -167,15 +241,24 @@ export default function EditorPage() {
         onPointerMove={handleSvgPointerMove}
         onPointerUp={handleSvgPointerUp}
       >
+        <SetaMarkerDefs />
         {cena.pecas.map((peca) => (
           <PecaSvg
             key={peca.id}
             peca={peca}
             dragging={peca.id === draggingId}
-            selected={peca.id === selectedId}
+            selected={peca.id === selectedId || peca.id === origemSelecionada}
             onPointerDown={handlePecaPointerDown(peca.id)}
           />
         ))}
+        {cena.acoes.map((acao) => {
+          const origemPeca = cena.pecas.find((peca) => peca.id === acao.origem)
+          const destino = typeof acao.destino === 'string'
+            ? cena.pecas.find((peca) => peca.id === acao.destino)
+            : acao.destino
+          if (!origemPeca || !destino) return null
+          return <AcaoSvg key={acao.id} x1={origemPeca.x} y1={origemPeca.y} x2={destino.x} y2={destino.y} />
+        })}
       </QuadraSvg>
     </div>
   )
