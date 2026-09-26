@@ -146,25 +146,37 @@ export default function EditorPage() {
     setAcaoSelecionadaId((atual) => (atual === id ? null : id))
   }
 
-  function moverAcao(id: string, direcao: -1 | 1) {
+  function moverInstante(ordem: number, direcao: -1 | 1) {
     setCena((prev) => {
       if (!prev) return prev
-      const ordenadas = [...prev.acoes].sort((a, b) => a.ordem - b.ordem)
-      const index = ordenadas.findIndex((acao) => acao.id === id)
-      const vizinho = index + direcao
-      if (index === -1 || vizinho < 0 || vizinho >= ordenadas.length) return prev
-
-      const ordemAtual = ordenadas[index].ordem
-      const ordemVizinho = ordenadas[vizinho].ordem
+      const vizinha = ordem + direcao
+      if (!prev.acoes.some((acao) => acao.ordem === vizinha)) return prev
       return {
         ...prev,
         acoes: prev.acoes.map((acao) => {
-          if (acao.id === ordenadas[index].id) return { ...acao, ordem: ordemVizinho }
-          if (acao.id === ordenadas[vizinho].id) return { ...acao, ordem: ordemAtual }
+          if (acao.ordem === ordem) return { ...acao, ordem: vizinha }
+          if (acao.ordem === vizinha) return { ...acao, ordem }
           return acao
         }),
       }
     })
+  }
+
+  function juntarAoInstanteAnterior(id: string) {
+    setCena((prev) => {
+      const acao = prev?.acoes.find((a) => a.id === id)
+      if (!prev || !acao) return prev
+      const anterior = prev.acoes.filter((a) => a.ordem === acao.ordem - 1)
+      if (anterior.length === 0 || !cabeNoInstante(acao, anterior, prev.pecas)) return prev
+      return {
+        ...prev,
+        acoes: compactarOrdens(prev.acoes.map((a) => (a.id === id ? { ...a, ordem: acao.ordem - 1 } : a))),
+      }
+    })
+  }
+
+  function separarEmInstanteProprio(id: string) {
+    setCena((prev) => (prev ? { ...prev, acoes: separarAcao(prev.acoes, id) } : prev))
   }
 
   function handlePecaPointerDown(id: string) {
@@ -396,9 +408,12 @@ export default function EditorPage() {
 
         <AcoesPainel
           acoes={cena.acoes}
+          pecas={cena.pecas}
           editandoId={editandoId}
           selecionadaId={acaoSelecionadaId}
-          onMover={moverAcao}
+          onMoverInstante={moverInstante}
+          onJuntar={juntarAoInstanteAnterior}
+          onSeparar={separarEmInstanteProprio}
           onEditar={iniciarEdicaoAcao}
           onRemover={removerAcao}
           onSelecionar={alternarSelecaoAcao}
