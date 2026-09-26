@@ -72,14 +72,16 @@ export default function AthleteEntryPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-slate-100 to-slate-50 p-6">
-      <button
-        type="button"
-        onClick={() => navigate('/')}
-        className="mb-6 inline-flex items-center gap-1.5 self-start text-sm text-slate-500 hover:text-slate-700 hover:underline"
-      >
-        <ArrowLeftIcon className="h-4 w-4" />
-        Voltar
-      </button>
+      <div className="mb-6 w-full max-w-md">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          Voltar
+        </button>
+      </div>
 
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Prancheta Tática</h1>
