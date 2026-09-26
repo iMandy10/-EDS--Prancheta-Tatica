@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChaveInvalidaError, getTeamByChaveAtleta } from '../lib/athleteApi'
 import { clearChaveAtleta, getChaveAtleta, setChaveAtleta } from '../lib/athleteStorage'
 import Button from '../components/Button'
+import { ArrowLeftIcon } from '../components/icons'
 
 const ERRO_SERVIDOR = 'Não foi possível validar a chave. Verifique se o servidor está rodando e tente novamente.'
 
@@ -71,6 +72,17 @@ export default function AthleteEntryPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-slate-100 to-slate-50 p-6">
+      <div className="mb-6 w-full max-w-md">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          Voltar
+        </button>
+      </div>
+
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Prancheta Tática</h1>
         <p className="mt-1 text-sm text-slate-500">Veja as jogadas publicadas pelo seu treinador</p>

@@ -139,6 +139,14 @@ export default function CreateTeamPage() {
           {chaveError && <p className="text-sm text-red-600">{chaveError}</p>}
         </form>
       </div>
+
+      <button
+        type="button"
+        onClick={() => navigate('/atleta')}
+        className="mt-6 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+      >
+        É atleta? Acesse as jogadas do seu time
+      </button>
     </div>
   )
 }

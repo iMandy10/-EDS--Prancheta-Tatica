@@ -9,7 +9,7 @@ import QuadraSvg from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import ControlesAnimacao from '../components/ControlesAnimacao'
-import { FOLGA_FIM_SETA, FOLGA_INICIO_SETA, recortarSeta, rotuloPeca } from '../lib/basquete'
+import { FOLGA_FIM_SETA, FOLGA_INICIO_SETA, recortarSeta, rotuloPeca } from '../lib/dinamica'
 import BarraProgresso from '../components/BarraProgresso'
 
 function AnimacaoJogada({ cena }: { cena: Cena }) {

@@ -18,6 +18,15 @@ function Svg({ className = 'h-4 w-4', children }: IconProps & { children: ReactN
   )
 }
 
+export function ArrowLeftIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </Svg>
+  )
+}
+
 export function PencilIcon(props: IconProps) {
   return (
     <Svg {...props}>

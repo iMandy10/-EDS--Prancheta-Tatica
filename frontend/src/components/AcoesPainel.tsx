@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { ChevronDownIcon, ChevronUpIcon, LinkIcon, PencilIcon, TrashIcon, UnlinkIcon } from './icons'
 import { agruparPorInstante, cabeNoInstante } from '../lib/instantes'
-import { descreverPeca } from '../lib/basquete'
+import { descreverPeca } from '../lib/dinamica'
+import type { Formacao } from '../lib/futebol'
 import type { Modalidade } from '../lib/api'
 import type { Acao, Peca } from '../types/cena'
 
@@ -12,18 +13,11 @@ const ROTULO_TIPO: Record<Acao['tipo'], string> = {
   drible: 'Drible',
 }
 
-const COR_TIPO: Record<Acao['tipo'], string> = {
-  movimentacao: 'bg-emerald-500',
-  passe: 'bg-violet-500',
-  bloqueio: 'bg-orange-500',
-  drible: 'bg-sky-500',
-}
-
 // Destino livre é descrito pelo jogador que o motor identificou na área da ponta, no momento da ação.
-function descreverDestino(acao: Acao, alvos: Map<string, string>, quadra: Modalidade) {
-  if (typeof acao.destino === 'string') return descreverPeca(acao.destino, quadra)
+function descreverDestino(acao: Acao, alvos: Map<string, string>, quadra: Modalidade, formacao?: Formacao) {
+  if (typeof acao.destino === 'string') return descreverPeca(acao.destino, quadra, formacao)
   const jogador = alvos.get(acao.id)
-  return jogador ? descreverPeca(jogador, quadra) : 'ponto livre'
+  return jogador ? descreverPeca(jogador, quadra, formacao) : 'ponto livre'
 }
 
 function BotaoIcone({
@@ -60,6 +54,7 @@ export default function AcoesPainel({
   acoes,
   pecas,
   quadra,
+  formacao,
   alvos,
   editandoId,
   selecionadaId,
@@ -75,6 +70,7 @@ export default function AcoesPainel({
   acoes: Acao[]
   pecas: Peca[]
   quadra: Modalidade
+  formacao?: Formacao
   alvos: Map<string, string>
   editandoId: string | null
   selecionadaId: string | null
@@ -135,11 +131,10 @@ export default function AcoesPainel({
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        <span
-                          className={`h-2 w-2 shrink-0 rounded-full ${quadra === 'basquete' ? 'bg-gray-900' : COR_TIPO[acao.tipo]}`}
-                        />
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-gray-900" />
                         <span className="text-slate-700">
-                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao, alvos, quadra)}
+                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra, formacao)} para{' '}
+                          {descreverDestino(acao, alvos, quadra, formacao)}
                           {editandoId === acao.id && (
                             <span className="ml-1 text-xs font-medium text-amber-600">(editando)</span>
                           )}
