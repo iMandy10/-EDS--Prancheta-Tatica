@@ -1,10 +1,18 @@
 import type { PointerEvent, ReactNode } from 'react'
 import type { Modalidade } from '../lib/api'
+import type { Visualizacao } from '../types/cena'
 
 const WIDTH = 800
 const HEIGHT = 500
+// Meia quadra corta na linha de meio (x=400); a margem extra é só espaço de respiro, como na quadra inteira.
+const MEIA_QUADRA_MAXX = 400
+const MEIA_QUADRA_LARGURA = MEIA_QUADRA_MAXX + 20
 
 export const QUADRA_LIMITES = { minX: 20, minY: 20, maxX: 780, maxY: 480 }
+
+export function limitesQuadra(visualizacao: Visualizacao = 'completa') {
+  return visualizacao === 'meia_quadra' ? { ...QUADRA_LIMITES, maxX: MEIA_QUADRA_MAXX } : QUADRA_LIMITES
+}
 
 function CornerArcs() {
   return (
@@ -32,6 +40,8 @@ function Gol({ x, mirror }: { x: number; mirror?: boolean }) {
   )
 }
 
+// As marcações sempre desenham a quadra inteira; na meia quadra, o viewBox menor corta a metade
+// distante — a linha de meio já funciona como a borda de fechamento do lado aberto.
 function FutebolMarkings() {
   return (
     <>
@@ -83,7 +93,8 @@ function BasqueteMarkings() {
   )
 }
 
-function MolduraPrancheta() {
+function MolduraPrancheta({ largura }: { largura: number }) {
+  const centro = largura / 2
   return (
     <>
       <defs>
@@ -100,42 +111,45 @@ function MolduraPrancheta() {
       </defs>
 
       {/* base de madeira da prancheta, por trás da quadra */}
-      <rect x={-20} y={-58} width={840} height={578} rx={18} fill="url(#madeira-moldura)" />
-      <rect x={-20} y={-58} width={840} height={578} rx={18} fill="none" stroke="#6b4423" strokeWidth={1.5} />
+      <rect x={-20} y={-58} width={largura + 40} height={578} rx={18} fill="url(#madeira-moldura)" />
+      <rect x={-20} y={-58} width={largura + 40} height={578} rx={18} fill="none" stroke="#6b4423" strokeWidth={1.5} />
 
       {/* furos de encadernação, no topo */}
       <circle cx={40} cy={-38} r={5} fill="#5c3a1e" />
-      <circle cx={760} cy={-38} r={5} fill="#5c3a1e" />
+      <circle cx={largura - 40} cy={-38} r={5} fill="#5c3a1e" />
 
       {/* presilha metálica central */}
-      <rect x={330} y={-56} width={140} height={40} rx={8} fill="url(#metal-presilha)" stroke="#475569" strokeWidth={1} />
-      <rect x={350} y={-46} width={100} height={12} rx={4} fill="#334155" />
-      <circle cx={400} cy={-36} r={6} fill="#cbd5e1" stroke="#475569" strokeWidth={1} />
+      <rect x={centro - 70} y={-56} width={140} height={40} rx={8} fill="url(#metal-presilha)" stroke="#475569" strokeWidth={1} />
+      <rect x={centro - 50} y={-46} width={100} height={12} rx={4} fill="#334155" />
+      <circle cx={centro} cy={-36} r={6} fill="#cbd5e1" stroke="#475569" strokeWidth={1} />
     </>
   )
 }
 
 export default function QuadraSvg({
   quadra,
+  visualizacao = 'completa',
   children,
   onPointerDown,
   onPointerMove,
   onPointerUp,
 }: {
   quadra: Modalidade
+  visualizacao?: Visualizacao
   children?: ReactNode
   onPointerDown?: (event: PointerEvent<SVGSVGElement>) => void
   onPointerMove?: (event: PointerEvent<SVGSVGElement>) => void
   onPointerUp?: (event: PointerEvent<SVGSVGElement>) => void
 }) {
-  const viewBox = quadra === 'basquete' ? '-20 -58 840 578' : `0 0 ${WIDTH} ${HEIGHT}`
+  const largura = visualizacao === 'meia_quadra' ? MEIA_QUADRA_LARGURA : WIDTH
+  const viewBox = quadra === 'basquete' ? `-20 -58 ${largura + 40} 578` : `0 0 ${largura} ${HEIGHT}`
 
   return (
     <svg
       viewBox={viewBox}
       className={quadra === 'basquete' ? 'w-full max-w-3xl' : 'w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10'}
       role="img"
-      aria-label={`Quadra de ${quadra}`}
+      aria-label={`Quadra de ${quadra}${visualizacao === 'meia_quadra' ? ' (meia quadra)' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -147,7 +161,7 @@ export default function QuadraSvg({
           <stop offset="100%" stopColor="#b97e46" />
         </linearGradient>
       </defs>
-      {quadra === 'basquete' && <MolduraPrancheta />}
+      {quadra === 'basquete' && <MolduraPrancheta largura={largura} />}
       {quadra === 'futebol' ? (
         <FutebolMarkings />
       ) : (
