@@ -26,8 +26,12 @@ export interface Acao {
   ordem: number
 }
 
+export type Visualizacao = 'completa' | 'meia_quadra'
+
 export interface Cena {
   quadra: Modalidade
+  // Ausente em jogadas salvas antes desta funcionalidade = 'completa'.
+  visualizacao?: Visualizacao
   pecas: Peca[]
   acoes: Acao[]
 }
