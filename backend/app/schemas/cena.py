@@ -10,6 +10,15 @@ class Peca(BaseModel):
     y: float
 
 
+class Acao(BaseModel):
+    id: str
+    tipo: Literal["movimentacao", "passe"]
+    origem: str
+    destino: str
+    ordem: int
+
+
 class Cena(BaseModel):
     quadra: Literal["futebol", "basquete"]
     pecas: list[Peca]
+    acoes: list[Acao] = []
