@@ -33,9 +33,22 @@ export default function PecaSvg({
       {selected && (
         <circle r={RAIOS[peca.tipo] + 5} fill="none" stroke="#facc15" strokeWidth={3} />
       )}
-      <circle r={RAIOS[peca.tipo]} fill={CORES[peca.tipo]} stroke="white" strokeWidth={2} />
+      <circle
+        r={RAIOS[peca.tipo]}
+        fill={CORES[peca.tipo]}
+        stroke="white"
+        strokeWidth={2}
+        style={{ filter: 'drop-shadow(0 2px 3px rgb(0 0 0 / 0.35))' }}
+      />
       {peca.tipo !== 'bola' && (
-        <text textAnchor="middle" dominantBaseline="central" fontSize={12} fill="white" fontWeight="bold">
+        <text
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={12}
+          fontFamily="Inter, sans-serif"
+          fill="white"
+          fontWeight="700"
+        >
           {peca.id}
         </text>
       )}
