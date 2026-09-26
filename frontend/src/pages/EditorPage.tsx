@@ -94,8 +94,9 @@ export default function EditorPage() {
       }
 
       const ordem = prev.acoes.length + 1
+      const numero = Math.max(0, ...prev.acoes.map((acao) => Number(acao.id.slice(1)) || 0)) + 1
       const novaAcao: Acao = {
-        id: `a${ordem}`,
+        id: `a${numero}`,
         tipo: modoDesenho,
         origem: origemSelecionada,
         destino,
