@@ -298,6 +298,16 @@ export default function EditorPage() {
     if (selectedId) removerPeca(selectedId)
   }
 
+  function limparPrancheta() {
+    if (!window.confirm('Limpar a prancheta? Todas as peças e setas serão removidas.')) return
+    setCena((prev) => (prev ? { ...prev, pecas: [], acoes: [] } : prev))
+    setSelectedId(null)
+    setModoDesenho(null)
+    setOrigemSelecionada(null)
+    setEditandoId(null)
+    setAcaoSelecionadaId(null)
+  }
+
   function colocarPeca(id: string, tipo: TipoPeca, x: number, y: number) {
     const raio = RAIOS[tipo]
     setCena((prev) => {
@@ -385,6 +395,11 @@ export default function EditorPage() {
               <TrashIcon className="h-4 w-4" />
               Remover
             </Button>
+            {cena.quadra === 'basquete' && (
+              <Button onClick={limparPrancheta} disabled={cena.pecas.length === 0} variant="danger">
+                Limpar prancheta
+              </Button>
+            )}
             <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
             <Button
               onClick={alternarModoDesenho('movimentacao')}
