@@ -109,6 +109,15 @@ export default function EditorPage() {
     }
   }
 
+  // No basquete, com uma seta selecionada, a ferramenta do estojo troca o tipo dela em vez de desenhar.
+  function escolherFerramenta(tipo: TipoAcao) {
+    if (acaoSelecionadaId) {
+      setCena((prev) => prev && { ...prev, acoes: editarAcao(prev.acoes, acaoSelecionadaId, { tipo }, prev.pecas) })
+      return
+    }
+    alternarModoDesenho(tipo)()
+  }
+
   function selecionarSeta(id: string) {
     setAcaoSelecionadaId(id)
     setSelectedId(null)
@@ -534,8 +543,8 @@ export default function EditorPage() {
           <EstojoPecas
             pecas={cena.pecas}
             onAlternar={alternarPecaDoEstojo}
-            ferramenta={modoDesenho}
-            onFerramenta={(tipo) => alternarModoDesenho(tipo)()}
+            ferramenta={setaSelecionada?.acao.tipo ?? modoDesenho}
+            onFerramenta={escolherFerramenta}
             ferramentasBloqueadas={editandoId !== null}
           />
         )}
