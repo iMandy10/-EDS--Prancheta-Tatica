@@ -1,3 +1,5 @@
+import type { Modalidade } from '../lib/api'
+
 export type TipoPeca = 'jogador_time_a' | 'jogador_time_b' | 'bola'
 
 export interface Peca {
@@ -5,4 +7,9 @@ export interface Peca {
   tipo: TipoPeca
   x: number
   y: number
+}
+
+export interface Cena {
+  quadra: Modalidade
+  pecas: Peca[]
 }

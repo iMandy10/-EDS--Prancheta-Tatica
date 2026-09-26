@@ -1,9 +1,9 @@
-import { useState, type PointerEvent } from 'react'
+import { useEffect, useState, type PointerEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
-import type { Peca } from '../types/cena'
+import type { Cena, Peca } from '../types/cena'
 
 const PECAS_INICIAIS: Peca[] = [
   { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
@@ -29,8 +29,14 @@ function paraCoordenadasSvg(svg: SVGSVGElement, clientX: number, clientY: number
 
 export default function EditorPage() {
   const { chave, team, notFound } = useTeamSession()
-  const [pecas, setPecas] = useState<Peca[]>(PECAS_INICIAIS)
+  const [cena, setCena] = useState<Cena | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (team && !cena) {
+      setCena({ quadra: team.modalidade, pecas: PECAS_INICIAIS })
+    }
+  }, [team, cena])
 
   function handlePecaPointerDown(id: string) {
     return (event: PointerEvent) => {
@@ -43,17 +49,21 @@ export default function EditorPage() {
     if (!draggingId) return
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
 
-    setPecas((prev) =>
-      prev.map((peca) => {
-        if (peca.id !== draggingId) return peca
-        const raio = RAIOS[peca.tipo]
-        return {
-          ...peca,
-          x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
-          y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
-        }
-      }),
-    )
+    setCena((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        pecas: prev.pecas.map((peca) => {
+          if (peca.id !== draggingId) return peca
+          const raio = RAIOS[peca.tipo]
+          return {
+            ...peca,
+            x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
+            y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
+          }
+        }),
+      }
+    })
   }
 
   function handleSvgPointerUp() {
@@ -64,7 +74,7 @@ export default function EditorPage() {
     return <Navigate to="/" replace />
   }
 
-  if (!team) {
+  if (!team || !cena) {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center p-6 text-gray-500">
         Carregando...
@@ -75,8 +85,8 @@ export default function EditorPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center gap-4 p-6">
       <h1 className="text-xl font-semibold text-gray-900">{team.nome}</h1>
-      <QuadraSvg quadra={team.modalidade} onPointerMove={handleSvgPointerMove} onPointerUp={handleSvgPointerUp}>
-        {pecas.map((peca) => (
+      <QuadraSvg quadra={cena.quadra} onPointerMove={handleSvgPointerMove} onPointerUp={handleSvgPointerUp}>
+        {cena.pecas.map((peca) => (
           <PecaSvg
             key={peca.id}
             peca={peca}
