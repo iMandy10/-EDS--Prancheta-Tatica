@@ -456,6 +456,7 @@ export default function EditorPage() {
               onPointerDown={handlePecaPointerDown(peca.id)}
             />
           ))}
+          <g pointerEvents="none">
           {cena.acoes.map((acao) => {
             const origemPeca = cena.pecas.find((peca) => peca.id === acao.origem)
             const destino = typeof acao.destino === 'string'
@@ -474,6 +475,7 @@ export default function EditorPage() {
               />
             )
           })}
+          </g>
         </QuadraSvg>
         </div>
 
