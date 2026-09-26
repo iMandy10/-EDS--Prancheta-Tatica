@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { ChevronDownIcon, ChevronUpIcon, LinkIcon, PencilIcon, TrashIcon, UnlinkIcon } from './icons'
 import { agruparPorInstante, cabeNoInstante } from '../lib/instantes'
-import { descreverPeca } from '../lib/basquete'
+import { descreverPeca, jogadorNaArea } from '../lib/basquete'
 import type { Modalidade } from '../lib/api'
 import type { Acao, Peca } from '../types/cena'
 
@@ -19,8 +19,10 @@ const COR_TIPO: Record<Acao['tipo'], string> = {
   drible: 'bg-sky-500',
 }
 
-function descreverDestino(destino: Acao['destino'], quadra: Modalidade) {
-  return typeof destino === 'string' ? descreverPeca(destino, quadra) : 'ponto livre'
+function descreverDestino(acao: Acao, pecas: Peca[], quadra: Modalidade) {
+  if (typeof acao.destino === 'string') return descreverPeca(acao.destino, quadra)
+  const jogador = quadra === 'basquete' ? jogadorNaArea(acao.destino, pecas, acao.origem) : undefined
+  return jogador ? descreverPeca(jogador.id, quadra) : 'ponto livre'
 }
 
 function BotaoIcone({
@@ -121,7 +123,7 @@ export default function AcoesPainel({
                       <span className="flex items-center gap-2">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${COR_TIPO[acao.tipo]}`} />
                         <span className="text-slate-700">
-                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao.destino, quadra)}
+                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao, pecas, quadra)}
                           {editandoId === acao.id && (
                             <span className="ml-1 text-xs font-medium text-amber-600">(editando)</span>
                           )}

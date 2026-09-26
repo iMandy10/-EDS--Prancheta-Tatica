@@ -42,3 +42,14 @@ export function recortarSeta(
   const [ux, uy] = [(x2 - x1) / comprimento, (y2 - y1) / comprimento]
   return { x1: x1 + ux * recuoInicio, y1: y1 + uy * recuoInicio, x2: x2 - ux * recuoFim, y2: y2 - uy * recuoFim }
 }
+
+// A seta é livre, mas se a ponta cair na área de identificação de um jogador (o dobro do raio dele),
+// o sistema entende que ele é o destino. A bola e a própria origem não contam; vale o mais próximo.
+export const RAIO_IDENTIFICACAO = 32
+
+export function jogadorNaArea(ponto: { x: number; y: number }, pecas: Peca[], origemId: string): Peca | undefined {
+  const distancia = (peca: Peca) => Math.hypot(peca.x - ponto.x, peca.y - ponto.y)
+  return pecas
+    .filter((peca) => peca.tipo !== 'bola' && peca.id !== origemId && distancia(peca) <= RAIO_IDENTIFICACAO)
+    .sort((a, b) => distancia(a) - distancia(b))[0]
+}
