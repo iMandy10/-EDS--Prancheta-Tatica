@@ -4,6 +4,7 @@ import { useTeamSession } from '../hooks/useTeamSession'
 import { useJogadas } from '../hooks/useJogadas'
 import EditarJogadaModal from '../components/EditarJogadaModal'
 import JogadaCard from '../components/JogadaCard'
+import Button from '../components/Button'
 import { getPlay, updatePlay, type PlaySummary } from '../lib/api'
 
 export default function MinhasJogadasPage() {
@@ -21,9 +22,7 @@ export default function MinhasJogadasPage() {
 
   if (!team) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center p-6 text-gray-500">
-        Carregando...
-      </div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">Carregando...</div>
     )
   }
 
@@ -54,39 +53,45 @@ export default function MinhasJogadasPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Minhas jogadas</h1>
-        <button
-          type="button"
-          onClick={() => navigate('/times/quadra')}
-          className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Voltar ao editor
-        </button>
+    <div className="min-h-screen bg-slate-50 pb-10">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">{team.nome}</p>
+            <h1 className="text-xl font-bold text-slate-900">Minhas jogadas</h1>
+          </div>
+          <Button onClick={() => navigate('/times/quadra')} variant="primary">
+            Voltar ao editor
+          </Button>
+        </div>
+      </header>
+
+      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-6 pt-6">
+        {erroLista && <p className="text-sm text-red-600">{erroLista}</p>}
+        {erroReabrir && <p className="text-sm text-red-600">{erroReabrir}</p>}
+
+        {jogadas === null ? (
+          <p className="text-slate-500">Carregando...</p>
+        ) : jogadas.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center">
+            <p className="text-slate-500">Nenhuma jogada salva ainda.</p>
+            <p className="mt-1 text-sm text-slate-400">Monte uma jogada no editor e clique em "Salvar jogada".</p>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {jogadas.map((jogada) => (
+              <JogadaCard
+                key={jogada.id}
+                jogada={jogada}
+                onEditar={setEditando}
+                onAlternarStatus={alternarStatus}
+                onExcluir={excluir}
+                onReabrir={handleReabrir}
+              />
+            ))}
+          </ul>
+        )}
       </div>
-
-      {erroLista && <p className="text-sm text-red-600">{erroLista}</p>}
-      {erroReabrir && <p className="text-sm text-red-600">{erroReabrir}</p>}
-
-      {jogadas === null ? (
-        <p className="text-gray-500">Carregando...</p>
-      ) : jogadas.length === 0 ? (
-        <p className="text-gray-500">Nenhuma jogada salva ainda.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {jogadas.map((jogada) => (
-            <JogadaCard
-              key={jogada.id}
-              jogada={jogada}
-              onEditar={setEditando}
-              onAlternarStatus={alternarStatus}
-              onExcluir={excluir}
-              onReabrir={handleReabrir}
-            />
-          ))}
-        </ul>
-      )}
 
       <EditarJogadaModal
         jogada={editando}
