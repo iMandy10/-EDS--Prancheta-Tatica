@@ -6,35 +6,60 @@ const HEIGHT = 500
 
 export const QUADRA_LIMITES = { minX: 20, minY: 20, maxX: 780, maxY: 480 }
 
-function GramaListrada() {
-  const faixas = Array.from({ length: 8 }, (_, index) => index)
+function CornerArcs() {
   return (
     <>
-      {faixas.map((index) => (
-        <rect
-          key={index}
-          x={index * 100}
-          y={0}
-          width={100}
-          height={HEIGHT}
-          fill={index % 2 === 0 ? '#2f8f3d' : '#2a7f37'}
-        />
-      ))}
+      <path d="M 20 40 A 20 20 0 0 1 40 20" fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 760 20 A 20 20 0 0 1 780 40" fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 780 460 A 20 20 0 0 1 760 480" fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 40 480 A 20 20 0 0 1 20 460" fill="none" stroke="white" strokeWidth={2} />
     </>
+  )
+}
+
+function Gol({ x, mirror }: { x: number; mirror?: boolean }) {
+  return (
+    <rect
+      x={mirror ? x - 10 : x}
+      y={225}
+      width={10}
+      height={50}
+      fill="none"
+      stroke="white"
+      strokeWidth={1.5}
+      opacity={0.85}
+    />
   )
 }
 
 function FutebolMarkings() {
   return (
     <>
+      {/* campo */}
+      <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="#1c8a3d" />
       <rect x={20} y={20} width={760} height={460} fill="none" stroke="white" strokeWidth={2} />
+      <CornerArcs />
+
+      {/* linha e círculo central */}
       <line x1={400} y1={20} x2={400} y2={480} stroke="white" strokeWidth={2} />
       <circle cx={400} cy={250} r={60} fill="none" stroke="white" strokeWidth={2} />
       <circle cx={400} cy={250} r={3} fill="white" />
+
+      {/* grande área e pequena área, esquerda */}
       <rect x={20} y={150} width={100} height={200} fill="none" stroke="white" strokeWidth={2} />
-      <rect x={680} y={150} width={100} height={200} fill="none" stroke="white" strokeWidth={2} />
       <rect x={20} y={200} width={40} height={100} fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 120 220 A 60 60 0 0 1 120 280" fill="none" stroke="white" strokeWidth={2} />
+      <circle cx={95} cy={250} r={2.5} fill="white" />
+
+      {/* grande área e pequena área, direita */}
+      <rect x={680} y={150} width={100} height={200} fill="none" stroke="white" strokeWidth={2} />
       <rect x={740} y={200} width={40} height={100} fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 680 220 A 60 60 0 0 0 680 280" fill="none" stroke="white" strokeWidth={2} />
+      <circle cx={705} cy={250} r={2.5} fill="white" />
+
+      {/* traves, ligeiramente para fora da linha de fundo */}
+      <Gol x={20} />
+      <Gol x={780} mirror />
     </>
   )
 }
@@ -84,11 +109,13 @@ export default function QuadraSvg({
         </linearGradient>
       </defs>
       {quadra === 'futebol' ? (
-        <GramaListrada />
+        <FutebolMarkings />
       ) : (
-        <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="url(#madeira-quadra)" />
+        <>
+          <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="url(#madeira-quadra)" />
+          <BasqueteMarkings />
+        </>
       )}
-      {quadra === 'futebol' ? <FutebolMarkings /> : <BasqueteMarkings />}
       {children}
     </svg>
   )
