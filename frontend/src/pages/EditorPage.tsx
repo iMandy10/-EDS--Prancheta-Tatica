@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
@@ -38,6 +38,7 @@ function paraCoordenadasSvg(svg: SVGSVGElement, clientX: number, clientY: number
 
 export default function EditorPage() {
   const { chave, team, notFound } = useTeamSession()
+  const navigate = useNavigate()
   const [cena, setCena] = useState<Cena | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -327,6 +328,13 @@ export default function EditorPage() {
           className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           Salvar jogada
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/times/jogadas')}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Minhas jogadas
         </button>
       </div>
 
