@@ -13,12 +13,15 @@ import BarraProgresso from '../components/BarraProgresso'
 
 function AnimacaoJogada({ cena }: { cena: Cena }) {
   const { pecas, passos, instanteAtual, tempo, duracao, tocando, tocar, pausar, reiniciar } = useAnimacao(cena)
+  // O drible gera dois passos (jogador e bola), mas uma só seta; a bola é desenhada por cima de quem a conduz.
+  const setas = passos.filter((passo, index) => passos.findIndex((outro) => outro.acao.id === passo.acao.id) === index)
+  const pecasEmOrdem = [...pecas].sort((a, b) => Number(a.tipo === 'bola') - Number(b.tipo === 'bola'))
 
   return (
     <>
       <QuadraSvg quadra={cena.quadra}>
         <SetaMarkerDefs />
-        {passos.map((passo) => (
+        {setas.map((passo) => (
           <g key={passo.acao.id} opacity={passo.instante === instanteAtual ? 1 : 0.35}>
             <AcaoSvg
               x1={passo.de.x}
@@ -30,7 +33,7 @@ function AnimacaoJogada({ cena }: { cena: Cena }) {
             />
           </g>
         ))}
-        {pecas.map((peca) => (
+        {pecasEmOrdem.map((peca) => (
           <PecaSvg key={peca.id} peca={peca} rotulo={rotuloPeca(peca, cena.quadra)} />
         ))}
       </QuadraSvg>

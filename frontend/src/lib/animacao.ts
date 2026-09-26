@@ -19,8 +19,8 @@ export interface Passo {
 // Ações com a mesma ordem rodam juntas, num mesmo instante; os instantes rodam em ordem crescente.
 // Cada instante parte das posições deixadas pelo anterior.
 // No passe quem viaja é a bola, saindo da peça de origem (sem bola em quadra, o passe é ignorado);
-// na movimentação, a própria peça de origem.
-// O passe mira onde o receptor termina o instante, então as movimentações do instante são resolvidas antes.
+// na movimentação e no bloqueio, a própria peça de origem; no drible, a peça de origem leva a bola junto.
+// O passe mira onde o receptor termina o instante, então os deslocamentos do instante são resolvidos antes.
 export function montarPassos(cena: Cena): Passo[] {
   const posicoes = new Map(cena.pecas.map((peca) => [peca.id, { x: peca.x, y: peca.y }]))
   const bola = cena.pecas.find((peca) => peca.tipo === 'bola')
@@ -28,10 +28,10 @@ export function montarPassos(cena: Cena): Passo[] {
 
   agruparPorInstante(cena.acoes).forEach((grupo, instante) => {
     const inicio = new Map(posicoes)
-    const movimentacoes = grupo.filter((acao) => acao.tipo === 'movimentacao')
+    const deslocamentos = grupo.filter((acao) => acao.tipo !== 'passe')
     const passes = grupo.filter((acao) => acao.tipo === 'passe')
 
-    for (const acao of [...movimentacoes, ...passes]) {
+    for (const acao of [...deslocamentos, ...passes]) {
       const de = inicio.get(acao.origem)
       const alvos = acao.tipo === 'passe' ? posicoes : inicio
       const para = typeof acao.destino === 'string' ? alvos.get(acao.destino) : acao.destino
@@ -40,6 +40,10 @@ export function montarPassos(cena: Cena): Passo[] {
       const pecaId = acao.tipo === 'passe' && bola ? bola.id : acao.origem
       passos.push({ acao, pecaId, de: { ...de }, para: { ...para }, instante })
       posicoes.set(pecaId, { ...para })
+      if (acao.tipo === 'drible' && bola && pecaId !== bola.id) {
+        passos.push({ acao, pecaId: bola.id, de: { ...de }, para: { ...para }, instante })
+        posicoes.set(bola.id, { ...para })
+      }
     }
   })
 
