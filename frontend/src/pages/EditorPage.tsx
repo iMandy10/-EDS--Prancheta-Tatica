@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from 'react'
+import { useEffect, useState, type DragEvent, type PointerEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
@@ -9,40 +9,28 @@ import EstojoPecas from '../components/EstojoPecas'
 import SalvarJogadaModal from '../components/SalvarJogadaModal'
 import ChaveAtletaModal from '../components/ChaveAtletaModal'
 import Button from '../components/Button'
-import { FolderOpenIcon, LogOutIcon, PlusIcon, TrashIcon } from '../components/icons'
+import { FolderOpenIcon, LogOutIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
-import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
+import { createPlay, type StatusJogada } from '../lib/api'
 import { clearChaveTreinador } from '../lib/storage'
 import { agruparPorInstante, cabeNoInstante, compactarOrdens } from '../lib/instantes'
 import { DURACAO_ACAO_MS, ateOInstante, estadoFinal, portadorAoFinal, simular } from '../lib/animacao'
 import { useAnimacao } from '../hooks/useAnimacao'
 import BarraProgresso from '../components/BarraProgresso'
 import ControlesAnimacao from '../components/ControlesAnimacao'
+import { POSICAO_PADRAO_BASQUETE } from '../lib/basquete'
+import { posicaoPadraoFutebol, type Formacao } from '../lib/futebol'
 import {
   FOLGA_FIM_SETA,
   FOLGA_INICIO_SETA,
-  POSICAO_PADRAO_BASQUETE,
   TIPO_ARRASTE_PECA,
   acompanharPosse,
   atribuirPosse,
   recortarSeta,
   rotuloPeca,
-} from '../lib/basquete'
-
-const PECAS_INICIAIS: Peca[] = [
-  { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
-  { id: 'A2', tipo: 'jogador_time_a', x: 250, y: 350 },
-  { id: 'B1', tipo: 'jogador_time_b', x: 550, y: 150 },
-  { id: 'B2', tipo: 'jogador_time_b', x: 550, y: 350 },
-  { id: 'bola', tipo: 'bola', x: 400, y: 250 },
-]
+} from '../lib/dinamica'
 
 const CENA_VAZIA: Cena = { quadra: 'basquete', pecas: [], acoes: [] }
-
-const MAX_JOGADORES: Record<Modalidade, number> = {
-  futebol: 11,
-  basquete: 5,
-}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -85,7 +73,7 @@ export default function EditorPage() {
   const location = useLocation()
   const cenaInicial = (location.state as { cenaInicial?: Cena } | null)?.cenaInicial
   const [cena, setCena] = useState<Cena | null>(null)
-  const quadra = cena?.quadra
+  const [formacao, setFormacao] = useState<Formacao>('4-4-2')
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [modoDesenho, setModoDesenho] = useState<TipoAcao | null>(null)
@@ -95,7 +83,7 @@ export default function EditorPage() {
   const [pontaSeta, setPontaSeta] = useState<{ x: number; y: number } | null>(null)
   const [arrastandoPonta, setArrastandoPonta] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  // Ponto da jogada em que a prancheta está (basquete): k = antes do instante k; null = fim da jogada.
+  // Ponto da jogada em que a prancheta está: k = antes do instante k; null = fim da jogada.
   const [ponto, setPonto] = useState<number | null>(null)
   const [reproduzindo, setReproduzindo] = useState(false)
   const animacao = useAnimacao(cena ?? CENA_VAZIA, () => {
@@ -106,7 +94,6 @@ export default function EditorPage() {
   const [modalChaveAberto, setModalChaveAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
-  const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
 
   function handleSair() {
     clearChaveTreinador()
@@ -115,8 +102,7 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (team && !cena) {
-      const pecas = team.modalidade === 'basquete' ? [] : PECAS_INICIAIS
-      setCena(cenaInicial ?? { quadra: team.modalidade, pecas, acoes: [] })
+      setCena(cenaInicial ?? { quadra: team.modalidade, pecas: [], acoes: [] })
     }
   }, [team, cena, cenaInicial])
 
@@ -131,9 +117,9 @@ export default function EditorPage() {
         setAviso(null)
         return
       }
-      // Delete/Backspace removem a seta selecionada no basquete, exceto enquanto se digita num campo.
+      // Delete/Backspace removem a seta selecionada, exceto enquanto se digita num campo.
       const digitando = (event.target as HTMLElement).closest('input, textarea')
-      if ((event.key === 'Delete' || event.key === 'Backspace') && !digitando && quadra === 'basquete') {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && !digitando) {
         if (!acaoSelecionadaId) return
         setCena((prev) => {
           if (!prev) return prev
@@ -144,7 +130,7 @@ export default function EditorPage() {
     }
     window.addEventListener('keydown', atalhos)
     return () => window.removeEventListener('keydown', atalhos)
-  }, [acaoSelecionadaId, quadra])
+  }, [acaoSelecionadaId])
 
   function alternarModoDesenho(tipo: TipoAcao) {
     return () => {
@@ -155,13 +141,11 @@ export default function EditorPage() {
     }
   }
 
-  // No basquete, a prancheta mostra a jogada num ponto: antes de um instante escolhido no painel, ou no fim.
+  // A prancheta mostra a jogada num ponto: antes de um instante escolhido no painel, ou no fim.
   // É dali que se desenham novas ações; peças só se arrastam no primeiro ponto (formação inicial).
-  const comPontos = (c: Cena) => c.quadra === 'basquete'
   const totalInstantes = (c: Cena) => agruparPorInstante(c.acoes).length
   const pontoDe = (c: Cena) => (ponto === null ? totalInstantes(c) : Math.min(ponto, totalInstantes(c)))
   const pecasEmTela = (c: Cena) => {
-    if (!comPontos(c)) return c.pecas
     if (reproduzindo) return animacao.pecas
     return estadoFinal(ateOInstante(c, pontoDe(c)))
   }
@@ -202,7 +186,7 @@ export default function EditorPage() {
     irParaPonto(Math.floor(animacao.tempo / DURACAO_ACAO_MS))
   }
 
-  // No basquete, com uma seta selecionada, a ferramenta do estojo troca o tipo dela em vez de desenhar.
+  // Com uma seta selecionada, a ferramenta do estojo troca o tipo dela em vez de desenhar.
   function escolherFerramenta(tipo: TipoAcao) {
     if (acaoSelecionadaId) {
       setCena((prev) => prev && { ...prev, acoes: editarAcao(prev.acoes, acaoSelecionadaId, { tipo }, prev.pecas) })
@@ -320,8 +304,8 @@ export default function EditorPage() {
       event.preventDefault()
       event.stopPropagation()
 
-      if (modoDesenho && cena?.quadra === 'basquete') {
-        // No basquete a seta é desenhada arrastando: começa aqui e termina no pointerup da quadra.
+      if (modoDesenho && cena) {
+        // A seta é desenhada arrastando: começa aqui e termina no pointerup da quadra.
         // Se a bola está com um jogador, a seta sai de quem tem a posse.
         const bola = pecasEmTela(cena).find((peca) => peca.id === id && peca.tipo === 'bola')
         const origem = bola?.posse ?? id
@@ -337,20 +321,9 @@ export default function EditorPage() {
         return
       }
 
-      if (modoDesenho) {
-        if (!origemSelecionada) {
-          setOrigemSelecionada(id)
-        } else if (origemSelecionada === id) {
-          setOrigemSelecionada(null)
-        } else {
-          criarAcao(id)
-        }
-        return
-      }
-
       setSelectedId(id)
-      if (cena?.quadra === 'basquete') setAcaoSelecionadaId(null)
-      if (cena && comPontos(cena) && pontoDe(cena) > 0) {
+      setAcaoSelecionadaId(null)
+      if (cena && pontoDe(cena) > 0) {
         setAviso('Aqui as peças estão onde a jogada as deixa. Para reposicioná-las, selecione o Instante 1 no painel.')
         return
       }
@@ -369,12 +342,12 @@ export default function EditorPage() {
     }
 
     setSelectedId(null)
-    if (cena?.quadra === 'basquete') setAcaoSelecionadaId(null)
+    setAcaoSelecionadaId(null)
   }
 
   function handleSvgPointerMove(event: PointerEvent<SVGSVGElement>) {
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
-    if (((modoDesenho && origemSelecionada) || arrastandoPonta) && cena?.quadra === 'basquete') {
+    if ((modoDesenho && origemSelecionada) || arrastandoPonta) {
       setPontaSeta({ x, y })
       return
     }
@@ -393,7 +366,7 @@ export default function EditorPage() {
       })
       // Quem tem a posse leva a bola junto; a própria bola, enquanto é arrastada, fica onde o cursor está.
       const arrastandoBola = pecas.some((peca) => peca.id === draggingId && peca.tipo === 'bola')
-      return { ...prev, pecas: prev.quadra === 'basquete' && !arrastandoBola ? acompanharPosse(pecas) : pecas }
+      return { ...prev, pecas: !arrastandoBola ? acompanharPosse(pecas) : pecas }
     })
   }
 
@@ -415,7 +388,7 @@ export default function EditorPage() {
 
   function handleSvgPointerUp(event: PointerEvent<SVGSVGElement>) {
     setDraggingId(null)
-    if (!cena || cena.quadra !== 'basquete') return
+    if (!cena) return
 
     // Ao soltar a bola: fica com o jogador em cuja área ela caiu (transferindo a posse) ou solta.
     if (cena.pecas.some((peca) => peca.id === draggingId && peca.tipo === 'bola')) {
@@ -442,25 +415,6 @@ export default function EditorPage() {
       setOrigemSelecionada(null)
     }
     setPontaSeta(null)
-  }
-
-  function handleAdicionarJogador(tipo: 'jogador_time_a' | 'jogador_time_b') {
-    return () => {
-      if (!cena) return
-      const max = MAX_JOGADORES[cena.quadra]
-      const atuais = cena.pecas.filter((peca) => peca.tipo === tipo)
-      if (atuais.length >= max) return
-
-      const prefixo = tipo === 'jogador_time_a' ? 'A' : 'B'
-      const numero = proximoIdRef.current[tipo]++
-      const novaPeca: Peca = {
-        id: `${prefixo}${numero}`,
-        tipo,
-        x: tipo === 'jogador_time_a' ? 250 : 550,
-        y: 100 + (atuais.length % 5) * 70,
-      }
-      setCena({ ...cena, pecas: [...cena.pecas, novaPeca] })
-    }
   }
 
   async function handleSalvarJogada(dados: { titulo: string; descricao: string; status: StatusJogada }) {
@@ -498,7 +452,7 @@ export default function EditorPage() {
   }
 
   function handleRemoverSelecionado() {
-    if (cena?.quadra === 'basquete' && acaoSelecionadaId) {
+    if (acaoSelecionadaId) {
       removerAcao(acaoSelecionadaId)
     } else if (selectedId) {
       removerPeca(selectedId)
@@ -527,8 +481,8 @@ export default function EditorPage() {
         y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
       }
       const pecas = [...prev.pecas, peca]
-      // No basquete, a bola colocada na área de um jogador já entra com ele.
-      return { ...prev, pecas: prev.quadra === 'basquete' && tipo === 'bola' ? atribuirPosse(pecas) : pecas }
+      // A bola colocada na área de um jogador já entra com ele.
+      return { ...prev, pecas: tipo === 'bola' ? atribuirPosse(pecas) : pecas }
     })
   }
 
@@ -536,7 +490,8 @@ export default function EditorPage() {
     if (cena?.pecas.some((peca) => peca.id === id)) {
       removerPeca(id)
     } else {
-      colocarPeca(id, tipo, POSICAO_PADRAO_BASQUETE[id].x, POSICAO_PADRAO_BASQUETE[id].y)
+      const posicao = cena?.quadra === 'basquete' ? POSICAO_PADRAO_BASQUETE[id] : posicaoPadraoFutebol(formacao, id)
+      colocarPeca(id, tipo, posicao.x, posicao.y)
     }
   }
 
@@ -562,22 +517,14 @@ export default function EditorPage() {
     )
   }
 
-  const contagem: Record<TipoPeca, number> = {
-    jogador_time_a: cena.pecas.filter((peca) => peca.tipo === 'jogador_time_a').length,
-    jogador_time_b: cena.pecas.filter((peca) => peca.tipo === 'jogador_time_b').length,
-    bola: cena.pecas.filter((peca) => peca.tipo === 'bola').length,
-  }
-  const max = MAX_JOGADORES[cena.quadra]
   const selecionada = cena.pecas.find((peca) => peca.id === selectedId)
-  const setaSelecionadaNoBasquete = cena.quadra === 'basquete' && acaoSelecionadaId !== null
-  const podeRemover =
-    setaSelecionadaNoBasquete || (selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete'))
+  const podeRemover = acaoSelecionadaId !== null || selecionada !== undefined
   const simulacao = simular(cena)
   const pecasVisiveis = pecasEmTela(cena)
   const origemDaSeta = pecasVisiveis.find((peca) => peca.id === origemSelecionada)
   // Geometria de cada seta; a seta selecionada acompanha o cursor enquanto a ponta é arrastada.
-  // No basquete a seta é recortada para não entrar nas peças de origem e de destino.
-  const recuoSeta = (peca: Peca, folga: number) => (cena.quadra === 'basquete' ? RAIOS[peca.tipo] + folga : 0)
+  // A seta é recortada para não entrar nas peças de origem e de destino.
+  const recuoSeta = (peca: Peca, folga: number) => RAIOS[peca.tipo] + folga
   const setasNaQuadra = cena.acoes.flatMap((acao) => {
     const origem = pecasVisiveis.find((peca) => peca.id === acao.origem)
     const pecaDestino = pecasVisiveis.find((peca) => peca.id === acao.destino)
@@ -609,8 +556,7 @@ export default function EditorPage() {
     agruparPorInstante(cena.acoes).flatMap((grupo, instante) => grupo.map((acao) => [acao.id, instante] as const)),
   )
   const instanteDeReferencia = reproduzindo ? (animacao.instanteAtual ?? totalInstantes(cena)) : pontoDe(cena)
-  const jaAconteceu = (acao: Acao) =>
-    comPontos(cena) && (instanteDaAcao.get(acao.id) ?? 0) < instanteDeReferencia
+  const jaAconteceu = (acao: Acao) => (instanteDaAcao.get(acao.id) ?? 0) < instanteDeReferencia
 
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
@@ -639,48 +585,13 @@ export default function EditorPage() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 pt-6">
         <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            {cena.quadra === 'futebol' && (
-              <>
-                <Button onClick={handleAdicionarJogador('jogador_time_a')} disabled={contagem.jogador_time_a >= max} variant="outline">
-                  <PlusIcon className="h-4 w-4 text-blue-600" />
-                  Time A ({contagem.jogador_time_a}/{max})
-                </Button>
-                <Button onClick={handleAdicionarJogador('jogador_time_b')} disabled={contagem.jogador_time_b >= max} variant="outline">
-                  <PlusIcon className="h-4 w-4 text-red-600" />
-                  Time B ({contagem.jogador_time_b}/{max})
-                </Button>
-              </>
-            )}
             <Button onClick={handleRemoverSelecionado} disabled={!podeRemover} variant="danger">
               <TrashIcon className="h-4 w-4" />
               Remover
             </Button>
-            {cena.quadra === 'basquete' && (
-              <Button onClick={limparPrancheta} disabled={cena.pecas.length === 0} variant="danger">
-                Limpar prancheta
-              </Button>
-            )}
-            {cena.quadra === 'futebol' && (
-            <>
-            <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
-            <Button
-              onClick={alternarModoDesenho('movimentacao')}
-              disabled={editandoId !== null}
-              variant="movimento"
-              active={modoDesenho === 'movimentacao'}
-            >
-              {modoDesenho === 'movimentacao' ? 'Desenhando... (clique p/ sair)' : 'Desenhar movimentação'}
+            <Button onClick={limparPrancheta} disabled={cena.pecas.length === 0} variant="danger">
+              Limpar prancheta
             </Button>
-            <Button
-              onClick={alternarModoDesenho('passe')}
-              disabled={editandoId !== null}
-              variant="passe"
-              active={modoDesenho === 'passe'}
-            >
-              {modoDesenho === 'passe' ? 'Desenhando... (clique p/ sair)' : 'Desenhar passe'}
-            </Button>
-            </>
-            )}
           </div>
 
           <Button onClick={() => setModalSalvarAberto(true)} variant="primary">
@@ -688,16 +599,17 @@ export default function EditorPage() {
           </Button>
         </div>
 
-        {cena.quadra === 'basquete' && (
-          <EstojoPecas
-            pecas={cena.pecas}
-            onAlternar={alternarPecaDoEstojo}
-            ferramenta={setaSelecionada?.acao.tipo ?? modoDesenho}
-            onFerramenta={escolherFerramenta}
-            ferramentasBloqueadas={editandoId !== null || reproduzindo}
-            pecasBloqueadas={pontoDe(cena) > 0 || reproduzindo}
-          />
-        )}
+        <EstojoPecas
+          quadra={cena.quadra}
+          formacao={cena.quadra === 'futebol' ? formacao : undefined}
+          onFormacao={cena.quadra === 'futebol' ? setFormacao : undefined}
+          pecas={cena.pecas}
+          onAlternar={alternarPecaDoEstojo}
+          ferramenta={setaSelecionada?.acao.tipo ?? modoDesenho}
+          onFerramenta={escolherFerramenta}
+          ferramentasBloqueadas={editandoId !== null || reproduzindo}
+          pecasBloqueadas={pontoDe(cena) > 0 || reproduzindo}
+        />
 
         {aviso && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{aviso}</div>
@@ -706,13 +618,7 @@ export default function EditorPage() {
         {modoDesenho && (
           <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">
             {editandoId ? <strong>Editando seta — </strong> : null}
-            {cena.quadra === 'basquete'
-              ? 'Arraste de uma peça até outra peça ou até um ponto da quadra. Esc sai do modo de desenho.'
-              : origemSelecionada
-                ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
-                : editandoId
-                  ? 'Selecione a nova peça de origem da seta.'
-                  : 'Selecione a peça de origem da seta.'}
+            Arraste de uma peça até outra peça ou até um ponto da quadra. Esc sai do modo de desenho.
           </div>
         )}
 
@@ -726,29 +632,28 @@ export default function EditorPage() {
           onPointerUp={handleSvgPointerUp}
         >
           <SetaMarkerDefs />
-          {cena.quadra === 'basquete' &&
-            setasNaQuadra.map(({ acao, x1, y1, x2, y2 }) => (
-              <line
-                key={`clique-${acao.id}`}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="transparent"
-                strokeWidth={14}
-                className="cursor-pointer touch-none"
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  selecionarSeta(acao.id)
-                }}
-              />
-            ))}
+          {setasNaQuadra.map(({ acao, x1, y1, x2, y2 }) => (
+            <line
+              key={`clique-${acao.id}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="transparent"
+              strokeWidth={14}
+              className="cursor-pointer touch-none"
+              onPointerDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                selecionarSeta(acao.id)
+              }}
+            />
+          ))}
           {pecasVisiveis.map((peca) => (
             <PecaSvg
               key={peca.id}
               peca={peca}
-              rotulo={rotuloPeca(peca, cena.quadra)}
+              rotulo={rotuloPeca(peca, cena.quadra, formacao)}
               dragging={peca.id === draggingId}
               selected={peca.id === selectedId || peca.id === origemSelecionada}
               onPointerDown={handlePecaPointerDown(peca.id)}
@@ -757,24 +662,16 @@ export default function EditorPage() {
           <g pointerEvents="none">
           {setasNaQuadra.map(({ acao, x1, y1, x2, y2 }) => (
             <g key={acao.id} opacity={jaAconteceu(acao) ? 0.35 : 1}>
-              <AcaoSvg
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                tipo={acao.tipo}
-                destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
-                preta={cena.quadra === 'basquete'}
-              />
+              <AcaoSvg x1={x1} y1={y1} x2={x2} y2={y2} tipo={acao.tipo} destacada={acao.id === acaoSelecionadaId || acao.id === editandoId} preta />
             </g>
           ))}
           {modoDesenho && previaSeta && (
             <g opacity={0.6}>
-              <AcaoSvg {...previaSeta} tipo={modoDesenho} preta={cena.quadra === 'basquete'} />
+              <AcaoSvg {...previaSeta} tipo={modoDesenho} preta />
             </g>
           )}
           </g>
-          {cena.quadra === 'basquete' && setaSelecionada && (
+          {setaSelecionada && (
             <circle
               cx={setaSelecionada.x2}
               cy={setaSelecionada.y2}
@@ -794,7 +691,7 @@ export default function EditorPage() {
           )}
         </QuadraSvg>
         </div>
-        {cena.quadra === 'basquete' && cena.acoes.length > 0 && (
+        {cena.acoes.length > 0 && (
           <div className="mt-4 flex flex-col items-center gap-3">
             <BarraProgresso
               progresso={(reproduzindo ? animacao.tempo : pontoDe(cena) * DURACAO_ACAO_MS) / animacao.duracao}
@@ -814,6 +711,7 @@ export default function EditorPage() {
           acoes={cena.acoes}
           pecas={cena.pecas}
           quadra={cena.quadra}
+          formacao={cena.quadra === 'futebol' ? formacao : undefined}
           alvos={simulacao.alvos}
           editandoId={editandoId}
           selecionadaId={acaoSelecionadaId}
@@ -823,8 +721,8 @@ export default function EditorPage() {
           onEditar={iniciarEdicaoAcao}
           onRemover={removerAcao}
           onSelecionar={alternarSelecaoAcao}
-          ponto={comPontos(cena) ? instanteDeReferencia : undefined}
-          onPonto={comPontos(cena) ? irParaPonto : undefined}
+          ponto={instanteDeReferencia}
+          onPonto={irParaPonto}
         />
         </div>
       </div>
