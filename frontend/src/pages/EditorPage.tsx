@@ -6,6 +6,8 @@ import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import AcoesPainel from '../components/AcoesPainel'
 import SalvarJogadaModal from '../components/SalvarJogadaModal'
+import Button from '../components/Button'
+import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 
@@ -276,82 +278,71 @@ export default function EditorPage() {
   const podeRemover = selecionada && selecionada.tipo !== 'bola'
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-4 p-6">
-      <h1 className="text-xl font-semibold text-gray-900">{team.nome}</h1>
+    <div className="min-h-screen bg-slate-50 pb-10">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Editor de jogadas</p>
+            <h1 className="text-xl font-bold text-slate-900">{team.nome}</h1>
+          </div>
+          <Button onClick={() => navigate('/times/jogadas')} variant="outline">
+            <FolderOpenIcon className="h-4 w-4" />
+            Minhas jogadas
+          </Button>
+        </div>
+      </header>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={handleAdicionarJogador('jogador_time_a')}
-          disabled={contagem.jogador_time_a >= max}
-          className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          + Jogador Time A ({contagem.jogador_time_a}/{max})
-        </button>
-        <button
-          type="button"
-          onClick={handleAdicionarJogador('jogador_time_b')}
-          disabled={contagem.jogador_time_b >= max}
-          className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          + Jogador Time B ({contagem.jogador_time_b}/{max})
-        </button>
-        <button
-          type="button"
-          onClick={handleRemoverSelecionado}
-          disabled={!podeRemover}
-          className="rounded-md bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
-        >
-          Remover jogador selecionado
-        </button>
-        <button
-          type="button"
-          onClick={alternarModoDesenho('movimentacao')}
-          disabled={editandoId !== null}
-          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 ${
-            modoDesenho === 'movimentacao' ? 'bg-emerald-800 ring-2 ring-emerald-300' : 'bg-emerald-600'
-          }`}
-        >
-          {modoDesenho === 'movimentacao' ? 'Desenhando movimentação (clique pra sair)' : 'Desenhar movimentação'}
-        </button>
-        <button
-          type="button"
-          onClick={alternarModoDesenho('passe')}
-          disabled={editandoId !== null}
-          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 ${
-            modoDesenho === 'passe' ? 'bg-purple-800 ring-2 ring-purple-300' : 'bg-purple-600'
-          }`}
-        >
-          {modoDesenho === 'passe' ? 'Desenhando passe (clique pra sair)' : 'Desenhar passe'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setModalSalvarAberto(true)}
-          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          Salvar jogada
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/times/jogadas')}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Minhas jogadas
-        </button>
-      </div>
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 pt-6">
+        <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={handleAdicionarJogador('jogador_time_a')} disabled={contagem.jogador_time_a >= max} variant="outline">
+              <PlusIcon className="h-4 w-4 text-blue-600" />
+              Time A ({contagem.jogador_time_a}/{max})
+            </Button>
+            <Button onClick={handleAdicionarJogador('jogador_time_b')} disabled={contagem.jogador_time_b >= max} variant="outline">
+              <PlusIcon className="h-4 w-4 text-red-600" />
+              Time B ({contagem.jogador_time_b}/{max})
+            </Button>
+            <Button onClick={handleRemoverSelecionado} disabled={!podeRemover} variant="danger">
+              <TrashIcon className="h-4 w-4" />
+              Remover
+            </Button>
+            <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
+            <Button
+              onClick={alternarModoDesenho('movimentacao')}
+              disabled={editandoId !== null}
+              variant="movimento"
+              active={modoDesenho === 'movimentacao'}
+            >
+              {modoDesenho === 'movimentacao' ? 'Desenhando... (clique p/ sair)' : 'Desenhar movimentação'}
+            </Button>
+            <Button
+              onClick={alternarModoDesenho('passe')}
+              disabled={editandoId !== null}
+              variant="passe"
+              active={modoDesenho === 'passe'}
+            >
+              {modoDesenho === 'passe' ? 'Desenhando... (clique p/ sair)' : 'Desenhar passe'}
+            </Button>
+          </div>
 
-      {modoDesenho && (
-        <p className="text-sm text-gray-600">
-          {editandoId ? 'Editando seta — ' : ''}
-          {origemSelecionada
-            ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
-            : editandoId
-              ? 'Selecione a nova peça de origem da seta.'
-              : 'Selecione a peça de origem da seta.'}
-        </p>
-      )}
+          <Button onClick={() => setModalSalvarAberto(true)} variant="primary">
+            Salvar jogada
+          </Button>
+        </div>
 
-      <div className="flex w-full flex-col items-start gap-6 lg:flex-row lg:justify-center">
+        {modoDesenho && (
+          <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">
+            {editandoId ? <strong>Editando seta — </strong> : null}
+            {origemSelecionada
+              ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
+              : editandoId
+                ? 'Selecione a nova peça de origem da seta.'
+                : 'Selecione a peça de origem da seta.'}
+          </div>
+        )}
+
+        <div className="flex w-full flex-col items-start gap-6 lg:flex-row lg:justify-center">
         <QuadraSvg
           quadra={cena.quadra}
           onPointerDown={handleSvgPointerDown}
@@ -397,6 +388,7 @@ export default function EditorPage() {
           onRemover={removerAcao}
           onSelecionar={alternarSelecaoAcao}
         />
+        </div>
       </div>
 
       <SalvarJogadaModal
