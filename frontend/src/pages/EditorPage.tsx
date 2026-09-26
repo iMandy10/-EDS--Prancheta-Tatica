@@ -280,7 +280,16 @@ export default function EditorPage() {
               ? cena.pecas.find((peca) => peca.id === acao.destino)
               : acao.destino
             if (!origemPeca || !destino) return null
-            return <AcaoSvg key={acao.id} x1={origemPeca.x} y1={origemPeca.y} x2={destino.x} y2={destino.y} />
+            return (
+              <AcaoSvg
+                key={acao.id}
+                x1={origemPeca.x}
+                y1={origemPeca.y}
+                x2={destino.x}
+                y2={destino.y}
+                tipo={acao.tipo}
+              />
+            )
           })}
         </QuadraSvg>
 
