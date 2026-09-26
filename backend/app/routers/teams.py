@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -14,4 +14,12 @@ def create_team(payload: TeamCreate, db: Session = Depends(get_db)) -> Team:
     db.add(team)
     db.commit()
     db.refresh(team)
+    return team
+
+
+@router.get("/{chave_treinador}", response_model=TeamResponse)
+def get_team_by_chave_treinador(chave_treinador: str, db: Session = Depends(get_db)) -> Team:
+    team = db.query(Team).filter(Team.chave_treinador == chave_treinador).first()
+    if team is None:
+        raise HTTPException(status_code=404, detail="Time não encontrado")
     return team
