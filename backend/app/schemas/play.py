@@ -13,6 +13,12 @@ class PlayCreate(BaseModel):
     cena: Cena
 
 
+class PlayUpdate(BaseModel):
+    titulo: str | None = Field(default=None, min_length=1)
+    descricao: str | None = None
+    status: Literal["rascunho", "publicada"] | None = None
+
+
 class PlayResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

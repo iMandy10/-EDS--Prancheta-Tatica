@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.play import Play
 from app.models.team import Team
-from app.schemas.play import PlayCreate, PlayResponse
+from app.schemas.play import PlayCreate, PlayResponse, PlayUpdate
 
 router = APIRouter(tags=["plays"])
 
@@ -28,6 +28,30 @@ def create_play(
         cena_json=payload.cena.model_dump(),
     )
     db.add(play)
+    db.commit()
+    db.refresh(play)
+    return play
+
+
+@router.patch("/plays/{play_id}", response_model=PlayResponse)
+def update_play(
+    play_id: int,
+    payload: PlayUpdate,
+    x_chave_treinador: str = Header(..., alias="X-Chave-Treinador"),
+    db: Session = Depends(get_db),
+) -> Play:
+    play = (
+        db.query(Play)
+        .join(Team, Team.id == Play.team_id)
+        .filter(Play.id == play_id, Team.chave_treinador == x_chave_treinador)
+        .first()
+    )
+    if play is None:
+        raise HTTPException(status_code=404, detail="Jogada não encontrada")
+
+    for campo, valor in payload.model_dump(exclude_unset=True).items():
+        setattr(play, campo, valor)
+
     db.commit()
     db.refresh(play)
     return play
