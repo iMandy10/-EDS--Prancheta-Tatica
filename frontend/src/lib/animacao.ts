@@ -18,7 +18,8 @@ export interface Passo {
 
 // Ações com a mesma ordem rodam juntas, num mesmo instante; os instantes rodam em ordem crescente.
 // Cada instante parte das posições deixadas pelo anterior.
-// No passe quem viaja é a bola, saindo da peça de origem; na movimentação, a própria peça de origem.
+// No passe quem viaja é a bola, saindo da peça de origem (sem bola em quadra, o passe é ignorado);
+// na movimentação, a própria peça de origem.
 // O passe mira onde o receptor termina o instante, então as movimentações do instante são resolvidas antes.
 export function montarPassos(cena: Cena): Passo[] {
   const posicoes = new Map(cena.pecas.map((peca) => [peca.id, { x: peca.x, y: peca.y }]))
@@ -34,7 +35,7 @@ export function montarPassos(cena: Cena): Passo[] {
       const de = inicio.get(acao.origem)
       const alvos = acao.tipo === 'passe' ? posicoes : inicio
       const para = typeof acao.destino === 'string' ? alvos.get(acao.destino) : acao.destino
-      if (!de || !para) continue
+      if (!de || !para || (acao.tipo === 'passe' && !bola)) continue
 
       const pecaId = acao.tipo === 'passe' && bola ? bola.id : acao.origem
       passos.push({ acao, pecaId, de: { ...de }, para: { ...para }, instante })
