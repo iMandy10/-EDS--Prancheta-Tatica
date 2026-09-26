@@ -304,19 +304,16 @@ export default function EditorPage() {
     })
   }
 
-  // Onde uma seta que sai de origemId termina ao ser solta: numa peça (jogadores têm prioridade
-  // sobre a bola), num ponto livre, ou null quando é solta na própria origem ou fora da quadra.
+  // Onde uma seta que sai de origemId termina ao ser solta: no ponto exato onde foi solta — a seta fica
+  // livre, sem se prender a nenhuma peça —, ou null quando é solta na própria origem ou fora da quadra.
   function destinoAoSoltar(event: PointerEvent<SVGSVGElement>, origemId: string): Acao['destino'] | null {
     if (!cena) return null
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
-    const perto = (peca: Peca) => Math.hypot(peca.x - x, peca.y - y) <= RAIOS[peca.tipo] + 4
-    const candidatos = cena.pecas.filter((peca) => peca.id !== origemId && perto(peca))
-    const alvo = candidatos.find((peca) => peca.tipo !== 'bola') ?? candidatos[0]
     const origem = cena.pecas.find((peca) => peca.id === origemId)
+    const naOrigem = origem && Math.hypot(origem.x - x, origem.y - y) <= RAIOS[origem.tipo] + 4
     const { width, height } = event.currentTarget.viewBox.baseVal
 
-    if (alvo) return alvo.id
-    if (x < 0 || y < 0 || x > width || y > height || (origem && perto(origem))) return null
+    if (x < 0 || y < 0 || x > width || y > height || naOrigem) return null
     return {
       x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
       y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
