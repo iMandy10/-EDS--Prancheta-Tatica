@@ -70,6 +70,23 @@ adequada.
 
 ---
 
+## Cena da jogada
+
+A cena tem a quadra (`futebol` ou `basquete`), as peças (`id`, `tipo`, `x`, `y`) e as ações
+(`id`, `tipo` = `movimentacao` ou `passe`, `origem`, `destino`, `ordem`). O destino pode ser o
+`id` de uma peça ou um ponto livre `{ "x", "y" }`.
+
+A `ordem` indica o **instante** da ação: ações com a mesma ordem acontecem ao mesmo tempo, e os
+instantes rodam em ordem crescente. Na animação, cada instante dura 1 s. O backend rejeita
+cenas em que uma peça faz mais de uma ação no mesmo instante, ou em que mais de uma ação move
+a bola no mesmo instante (passe ou movimentação da própria bola).
+
+O atleta busca a cena de uma jogada publicada em
+`GET /teams/{team_id}/plays/published/{play_id}`, com o header `X-Chave-Atleta`.
+`GET /plays/{play_id}` é exclusiva do treinador (header `X-Chave-Treinador`).
+
+---
+
 ## Executando o projeto
 
 ```bash
