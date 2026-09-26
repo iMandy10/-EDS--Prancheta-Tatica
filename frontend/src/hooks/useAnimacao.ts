@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { DURACAO_ACAO_MS, montarPassos, posicoesNoTempo } from '../lib/animacao'
+import { DURACAO_ACAO_MS, contarInstantes, montarPassos, posicoesNoTempo } from '../lib/animacao'
 import type { Cena } from '../types/cena'
 
 export function useAnimacao(cena: Cena) {
   const passos = useMemo(() => montarPassos(cena), [cena])
-  const duracao = passos.length * DURACAO_ACAO_MS
+  const duracao = contarInstantes(passos) * DURACAO_ACAO_MS
   const [tempo, setTempo] = useState(0)
   const [tocando, setTocando] = useState(false)
   const tempoRef = useRef(0)
