@@ -4,6 +4,7 @@ import ConfirmationPage from './pages/ConfirmationPage'
 import WelcomeBackPage from './pages/WelcomeBackPage'
 import EditorPage from './pages/EditorPage'
 import MinhasJogadasPage from './pages/MinhasJogadasPage'
+import AthleteEntryPage from './pages/AthleteEntryPage'
 import { getChaveTreinador } from './lib/storage'
 
 function RootRoute() {
@@ -21,6 +22,7 @@ function App() {
       <Route path="/times/bem-vindo" element={<WelcomeBackPage />} />
       <Route path="/times/quadra" element={<EditorPage />} />
       <Route path="/times/jogadas" element={<MinhasJogadasPage />} />
+      <Route path="/atleta" element={<AthleteEntryPage />} />
     </Routes>
   )
 }
