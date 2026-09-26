@@ -10,11 +10,16 @@ class Peca(BaseModel):
     y: float
 
 
+class PontoDestino(BaseModel):
+    x: float
+    y: float
+
+
 class Acao(BaseModel):
     id: str
     tipo: Literal["movimentacao", "passe"]
     origem: str
-    destino: str
+    destino: str | PontoDestino
     ordem: int
 
 
@@ -33,7 +38,7 @@ class Cena(BaseModel):
         for acao in self.acoes:
             if acao.origem not in ids_pecas:
                 raise ValueError(f"acao '{acao.id}': origem '{acao.origem}' não corresponde a nenhuma peca da cena")
-            if acao.destino not in ids_pecas:
+            if isinstance(acao.destino, str) and acao.destino not in ids_pecas:
                 raise ValueError(f"acao '{acao.id}': destino '{acao.destino}' não corresponde a nenhuma peca da cena")
 
         return self
