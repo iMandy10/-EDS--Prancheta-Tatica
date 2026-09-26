@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.play import Play
 from app.models.team import Team
-from app.schemas.play import PlayCreate, PlayResponse, PlayUpdate
+from app.schemas.play import PlayCreate, PlayResponse, PlaySummary, PlayUpdate
 
 router = APIRouter(tags=["plays"])
 
@@ -31,6 +31,19 @@ def create_play(
     db.commit()
     db.refresh(play)
     return play
+
+
+@router.get("/teams/{team_id}/plays", response_model=list[PlaySummary])
+def list_plays(
+    team_id: int,
+    x_chave_treinador: str = Header(..., alias="X-Chave-Treinador"),
+    db: Session = Depends(get_db),
+) -> list[Play]:
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if team is None or team.chave_treinador != x_chave_treinador:
+        raise HTTPException(status_code=404, detail="Time não encontrado")
+
+    return db.query(Play).filter(Play.team_id == team.id).order_by(Play.updated_at.desc()).all()
 
 
 @router.patch("/plays/{play_id}", response_model=PlayResponse)

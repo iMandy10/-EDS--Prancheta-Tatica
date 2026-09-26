@@ -30,3 +30,15 @@ class PlayResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+
+
+class PlaySummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    titulo: str
+    descricao: str | None
+    status: str
+    created_at: datetime
+    updated_at: datetime
