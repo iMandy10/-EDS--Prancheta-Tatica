@@ -68,3 +68,22 @@ def update_play(
     db.commit()
     db.refresh(play)
     return play
+
+
+@router.delete("/plays/{play_id}", status_code=204)
+def delete_play(
+    play_id: int,
+    x_chave_treinador: str = Header(..., alias="X-Chave-Treinador"),
+    db: Session = Depends(get_db),
+) -> None:
+    play = (
+        db.query(Play)
+        .join(Team, Team.id == Play.team_id)
+        .filter(Play.id == play_id, Team.chave_treinador == x_chave_treinador)
+        .first()
+    )
+    if play is None:
+        raise HTTPException(status_code=404, detail="Jogada não encontrada")
+
+    db.delete(play)
+    db.commit()
