@@ -12,7 +12,10 @@ import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 import { agruparPorInstante, cabeNoInstante, compactarOrdens } from '../lib/instantes'
-import { ateOInstante, estadoFinal, portadorAoFinal, simular } from '../lib/animacao'
+import { DURACAO_ACAO_MS, ateOInstante, estadoFinal, portadorAoFinal, simular } from '../lib/animacao'
+import { useAnimacao } from '../hooks/useAnimacao'
+import BarraProgresso from '../components/BarraProgresso'
+import ControlesAnimacao from '../components/ControlesAnimacao'
 import {
   FOLGA_FIM_SETA,
   FOLGA_INICIO_SETA,
@@ -31,6 +34,8 @@ const PECAS_INICIAIS: Peca[] = [
   { id: 'B2', tipo: 'jogador_time_b', x: 550, y: 350 },
   { id: 'bola', tipo: 'bola', x: 400, y: 250 },
 ]
+
+const CENA_VAZIA: Cena = { quadra: 'basquete', pecas: [], acoes: [] }
 
 const MAX_JOGADORES: Record<Modalidade, number> = {
   futebol: 11,
@@ -90,6 +95,11 @@ export default function EditorPage() {
   const [aviso, setAviso] = useState<string | null>(null)
   // Ponto da jogada em que a prancheta está (basquete): k = antes do instante k; null = fim da jogada.
   const [ponto, setPonto] = useState<number | null>(null)
+  const [reproduzindo, setReproduzindo] = useState(false)
+  const animacao = useAnimacao(cena ?? CENA_VAZIA, () => {
+    setReproduzindo(false)
+    setPonto(null)
+  })
   const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
@@ -144,6 +154,7 @@ export default function EditorPage() {
   const pontoDe = (c: Cena) => (ponto === null ? totalInstantes(c) : Math.min(ponto, totalInstantes(c)))
   const pecasEmTela = (c: Cena) => {
     if (!comPontos(c)) return c.pecas
+    if (reproduzindo) return animacao.pecas
     return estadoFinal(ateOInstante(c, pontoDe(c)))
   }
 
@@ -156,8 +167,31 @@ export default function EditorPage() {
   }
 
   function irParaPonto(k: number) {
+    animacao.pausar()
+    setReproduzindo(false)
     setPonto(cena && k >= totalInstantes(cena) ? null : k)
     limparInteracao()
+  }
+
+  // O play anima a partir do ponto selecionado (ou do começo, se estiver no fim).
+  function reproduzir() {
+    if (!cena) return
+    const inicio = pontoDe(cena) >= totalInstantes(cena) ? 0 : pontoDe(cena)
+    animacao.irPara(inicio * DURACAO_ACAO_MS)
+    animacao.tocar()
+    setReproduzindo(true)
+    limparInteracao()
+  }
+
+  function reiniciarReproducao() {
+    animacao.reiniciar()
+    setReproduzindo(true)
+    limparInteracao()
+  }
+
+  // Ao pausar, a prancheta volta ao ponto do instante em andamento, pronta para editar.
+  function pausarReproducao() {
+    irParaPonto(Math.floor(animacao.tempo / DURACAO_ACAO_MS))
   }
 
   // No basquete, com uma seta selecionada, a ferramenta do estojo troca o tipo dela em vez de desenhar.
@@ -562,11 +596,11 @@ export default function EditorPage() {
         )
       : null
   const setaSelecionada = setasNaQuadra.find((seta) => seta.acao.id === acaoSelecionadaId)
-  // Setas de instantes que já aconteceram no ponto ficam esmaecidas.
+  // Setas de instantes que já aconteceram no ponto (ou na reprodução) ficam esmaecidas.
   const instanteDaAcao = new Map(
     agruparPorInstante(cena.acoes).flatMap((grupo, instante) => grupo.map((acao) => [acao.id, instante] as const)),
   )
-  const instanteDeReferencia = pontoDe(cena)
+  const instanteDeReferencia = reproduzindo ? (animacao.instanteAtual ?? totalInstantes(cena)) : pontoDe(cena)
   const jaAconteceu = (acao: Acao) =>
     comPontos(cena) && (instanteDaAcao.get(acao.id) ?? 0) < instanteDeReferencia
 
@@ -643,8 +677,8 @@ export default function EditorPage() {
             onAlternar={alternarPecaDoEstojo}
             ferramenta={setaSelecionada?.acao.tipo ?? modoDesenho}
             onFerramenta={escolherFerramenta}
-            ferramentasBloqueadas={editandoId !== null}
-            pecasBloqueadas={pontoDe(cena) > 0}
+            ferramentasBloqueadas={editandoId !== null || reproduzindo}
+            pecasBloqueadas={pontoDe(cena) > 0 || reproduzindo}
           />
         )}
 
@@ -667,6 +701,7 @@ export default function EditorPage() {
 
         <div className="flex w-full flex-col items-start gap-6 lg:flex-row lg:justify-center">
         <div className="w-full max-w-3xl" onDragOver={(event) => event.preventDefault()} onDrop={handleSoltarNaQuadra}>
+        <div className={reproduzindo ? 'pointer-events-none' : undefined}>
         <QuadraSvg
           quadra={cena.quadra}
           onPointerDown={handleSvgPointerDown}
@@ -741,6 +776,21 @@ export default function EditorPage() {
             />
           )}
         </QuadraSvg>
+        </div>
+        {cena.quadra === 'basquete' && cena.acoes.length > 0 && (
+          <div className="mt-4 flex flex-col items-center gap-3">
+            <BarraProgresso
+              progresso={(reproduzindo ? animacao.tempo : pontoDe(cena) * DURACAO_ACAO_MS) / animacao.duracao}
+            />
+            <ControlesAnimacao
+              tocando={animacao.tocando}
+              desabilitado={false}
+              onTocar={reproduzir}
+              onPausar={pausarReproducao}
+              onReiniciar={reiniciarReproducao}
+            />
+          </div>
+        )}
         </div>
 
         <AcoesPainel
