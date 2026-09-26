@@ -270,29 +270,35 @@ export default function EditorPage() {
     })
   }
 
-  function handleSvgPointerUp(event: PointerEvent<SVGSVGElement>) {
-    setDraggingId(null)
-    if (!cena || cena.quadra !== 'basquete' || !modoDesenho || !origemSelecionada) return
-
-    // Soltar em outra peça liga a seta a ela; num ponto vazio, cria destino livre.
-    // Soltar na própria peça de origem ou fora da quadra cancela a seta.
+  // Onde uma seta que sai de origemId termina ao ser solta: numa peça (jogadores têm prioridade
+  // sobre a bola), num ponto livre, ou null quando é solta na própria origem ou fora da quadra.
+  function destinoAoSoltar(event: PointerEvent<SVGSVGElement>, origemId: string): Acao['destino'] | null {
+    if (!cena) return null
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
     const perto = (peca: Peca) => Math.hypot(peca.x - x, peca.y - y) <= RAIOS[peca.tipo] + 4
-    const candidatos = cena.pecas.filter((peca) => peca.id !== origemSelecionada && perto(peca))
+    const candidatos = cena.pecas.filter((peca) => peca.id !== origemId && perto(peca))
     const alvo = candidatos.find((peca) => peca.tipo !== 'bola') ?? candidatos[0]
-    const origem = cena.pecas.find((peca) => peca.id === origemSelecionada)
+    const origem = cena.pecas.find((peca) => peca.id === origemId)
     const { width, height } = event.currentTarget.viewBox.baseVal
-    const foraDaQuadra = x < 0 || y < 0 || x > width || y > height
 
-    if (alvo) {
-      criarAcao(alvo.id)
-    } else if (foraDaQuadra || (origem && perto(origem))) {
-      setOrigemSelecionada(null)
+    if (alvo) return alvo.id
+    if (x < 0 || y < 0 || x > width || y > height || (origem && perto(origem))) return null
+    return {
+      x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
+      y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
+    }
+  }
+
+  function handleSvgPointerUp(event: PointerEvent<SVGSVGElement>) {
+    setDraggingId(null)
+    if (!cena || cena.quadra !== 'basquete') return
+
+    if (!modoDesenho || !origemSelecionada) return
+    const destino = destinoAoSoltar(event, origemSelecionada)
+    if (destino) {
+      criarAcao(destino)
     } else {
-      criarAcao({
-        x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
-        y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
-      })
+      setOrigemSelecionada(null)
     }
     setPontaSeta(null)
   }
