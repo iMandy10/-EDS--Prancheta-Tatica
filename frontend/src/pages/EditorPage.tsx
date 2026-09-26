@@ -66,6 +66,7 @@ export default function EditorPage() {
   const [origemSelecionada, setOrigemSelecionada] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [acaoSelecionadaId, setAcaoSelecionadaId] = useState<string | null>(null)
+  const [pontaSeta, setPontaSeta] = useState<{ x: number; y: number } | null>(null)
   const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
@@ -84,6 +85,7 @@ export default function EditorPage() {
       setModoDesenho(null)
       setOrigemSelecionada(null)
       setEditandoId(null)
+      setPontaSeta(null)
     }
     window.addEventListener('keydown', sairComEsc)
     return () => window.removeEventListener('keydown', sairComEsc)
@@ -198,6 +200,20 @@ export default function EditorPage() {
       event.preventDefault()
       event.stopPropagation()
 
+      if (modoDesenho && cena?.quadra === 'basquete') {
+        // No basquete a seta é desenhada arrastando: começa aqui e termina no pointerup da quadra.
+        // Se a bola está sobre um jogador, a seta sai do jogador que a conduz.
+        const bola = cena.pecas.find((peca) => peca.id === id && peca.tipo === 'bola')
+        const condutor =
+          bola &&
+          cena.pecas.find(
+            (peca) => peca.tipo !== 'bola' && Math.hypot(peca.x - bola.x, peca.y - bola.y) <= RAIOS[peca.tipo],
+          )
+        setOrigemSelecionada(condutor ? condutor.id : id)
+        setPontaSeta(null)
+        return
+      }
+
       if (modoDesenho) {
         if (!origemSelecionada) {
           setOrigemSelecionada(id)
@@ -228,8 +244,12 @@ export default function EditorPage() {
   }
 
   function handleSvgPointerMove(event: PointerEvent<SVGSVGElement>) {
-    if (!draggingId) return
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
+    if (modoDesenho && origemSelecionada && cena?.quadra === 'basquete') {
+      setPontaSeta({ x, y })
+      return
+    }
+    if (!draggingId) return
 
     setCena((prev) => {
       if (!prev) return prev
@@ -248,8 +268,31 @@ export default function EditorPage() {
     })
   }
 
-  function handleSvgPointerUp() {
+  function handleSvgPointerUp(event: PointerEvent<SVGSVGElement>) {
     setDraggingId(null)
+    if (!cena || cena.quadra !== 'basquete' || !modoDesenho || !origemSelecionada) return
+
+    // Soltar em outra peça liga a seta a ela; num ponto vazio, cria destino livre.
+    // Soltar na própria peça de origem ou fora da quadra cancela a seta.
+    const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
+    const perto = (peca: Peca) => Math.hypot(peca.x - x, peca.y - y) <= RAIOS[peca.tipo] + 4
+    const candidatos = cena.pecas.filter((peca) => peca.id !== origemSelecionada && perto(peca))
+    const alvo = candidatos.find((peca) => peca.tipo !== 'bola') ?? candidatos[0]
+    const origem = cena.pecas.find((peca) => peca.id === origemSelecionada)
+    const { width, height } = event.currentTarget.viewBox.baseVal
+    const foraDaQuadra = x < 0 || y < 0 || x > width || y > height
+
+    if (alvo) {
+      criarAcao(alvo.id)
+    } else if (foraDaQuadra || (origem && perto(origem))) {
+      setOrigemSelecionada(null)
+    } else {
+      criarAcao({
+        x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
+        y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
+      })
+    }
+    setPontaSeta(null)
   }
 
   function handleAdicionarJogador(tipo: 'jogador_time_a' | 'jogador_time_b') {
@@ -371,6 +414,7 @@ export default function EditorPage() {
   const max = MAX_JOGADORES[cena.quadra]
   const selecionada = cena.pecas.find((peca) => peca.id === selectedId)
   const podeRemover = selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete')
+  const origemDaSeta = cena.pecas.find((peca) => peca.id === origemSelecionada)
 
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
@@ -452,11 +496,13 @@ export default function EditorPage() {
         {modoDesenho && (
           <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">
             {editandoId ? <strong>Editando seta — </strong> : null}
-            {origemSelecionada
-              ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
-              : editandoId
-                ? 'Selecione a nova peça de origem da seta.'
-                : 'Selecione a peça de origem da seta.'}
+            {cena.quadra === 'basquete'
+              ? 'Arraste de uma peça até outra peça ou até um ponto da quadra. Esc sai do modo de desenho.'
+              : origemSelecionada
+                ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
+                : editandoId
+                  ? 'Selecione a nova peça de origem da seta.'
+                  : 'Selecione a peça de origem da seta.'}
           </div>
         )}
 
@@ -498,6 +544,17 @@ export default function EditorPage() {
               />
             )
           })}
+          {modoDesenho && pontaSeta && origemDaSeta && (
+            <g opacity={0.6}>
+              <AcaoSvg
+                x1={origemDaSeta.x}
+                y1={origemDaSeta.y}
+                x2={pontaSeta.x}
+                y2={pontaSeta.y}
+                tipo={modoDesenho}
+              />
+            </g>
+          )}
           </g>
         </QuadraSvg>
         </div>
