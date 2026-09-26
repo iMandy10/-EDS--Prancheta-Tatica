@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon } from './icons'
 import type { Acao } from '../types/cena'
 
@@ -13,6 +14,36 @@ const COR_TIPO: Record<Acao['tipo'], string> = {
 
 function descreverDestino(destino: Acao['destino']) {
   return typeof destino === 'string' ? destino : 'ponto livre'
+}
+
+function BotaoIcone({
+  onClick,
+  disabled,
+  rotulo,
+  className = 'text-slate-500 hover:bg-slate-200',
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  rotulo: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick()
+      }}
+      disabled={disabled}
+      aria-label={rotulo}
+      title={rotulo}
+      className={`rounded-md p-1.5 disabled:opacity-30 ${className}`}
+    >
+      {children}
+    </button>
+  )
 }
 
 export default function AcoesPainel({
@@ -60,52 +91,22 @@ export default function AcoesPainel({
                 </span>
               </span>
               <span className="flex shrink-0 gap-0.5">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onMover(acao.id, -1)
-                  }}
-                  disabled={index === 0}
-                  aria-label="Mover ação para cima"
-                  className="rounded-md p-1.5 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                >
+                <BotaoIcone onClick={() => onMover(acao.id, -1)} disabled={index === 0} rotulo="Mover ação para cima">
                   <ChevronUpIcon className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onMover(acao.id, 1)
-                  }}
+                </BotaoIcone>
+                <BotaoIcone
+                  onClick={() => onMover(acao.id, 1)}
                   disabled={index === ordenadas.length - 1}
-                  aria-label="Mover ação para baixo"
-                  className="rounded-md p-1.5 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
+                  rotulo="Mover ação para baixo"
                 >
                   <ChevronDownIcon className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onEditar(acao.id)
-                  }}
-                  aria-label="Editar seta"
-                  className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
-                >
+                </BotaoIcone>
+                <BotaoIcone onClick={() => onEditar(acao.id)} rotulo="Editar seta" className="text-blue-600 hover:bg-blue-50">
                   <PencilIcon className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onRemover(acao.id)
-                  }}
-                  aria-label="Remover seta"
-                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
-                >
+                </BotaoIcone>
+                <BotaoIcone onClick={() => onRemover(acao.id)} rotulo="Remover seta" className="text-red-600 hover:bg-red-50">
                   <TrashIcon className="h-3.5 w-3.5" />
-                </button>
+                </BotaoIcone>
               </span>
             </li>
           ))}
