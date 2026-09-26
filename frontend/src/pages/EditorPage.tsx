@@ -44,6 +44,14 @@ function separarAcao(acoes: Acao[], id: string): Acao[] {
   )
 }
 
+// Aplica uma mudança numa ação; se ela deixar de caber no instante, vai para um instante próprio.
+function editarAcao(acoes: Acao[], id: string, mudanca: Partial<Acao>, pecas: Peca[]): Acao[] {
+  const editadas = acoes.map((acao) => (acao.id === id ? { ...acao, ...mudanca } : acao))
+  const editada = editadas.find((acao) => acao.id === id)
+  const grupo = editadas.filter((acao) => acao.ordem === editada?.ordem)
+  return editada && cabeNoInstante(editada, grupo, pecas) ? editadas : separarAcao(editadas, id)
+}
+
 function paraCoordenadasSvg(svg: SVGSVGElement, clientX: number, clientY: number) {
   const ponto = svg.createSVGPoint()
   ponto.x = clientX
@@ -115,13 +123,7 @@ export default function EditorPage() {
       if (!prev) return prev
 
       if (editandoId) {
-        const acoes = prev.acoes.map((acao) =>
-          acao.id === editandoId ? { ...acao, origem: origemSelecionada, destino } : acao,
-        )
-        const editada = acoes.find((acao) => acao.id === editandoId)
-        const grupo = acoes.filter((acao) => acao.ordem === editada?.ordem)
-        const cabe = editada && cabeNoInstante(editada, grupo, prev.pecas)
-        return { ...prev, acoes: cabe ? acoes : separarAcao(acoes, editandoId) }
+        return { ...prev, acoes: editarAcao(prev.acoes, editandoId, { origem: origemSelecionada, destino }, prev.pecas) }
       }
 
       const ordem = Math.max(0, ...prev.acoes.map((acao) => acao.ordem)) + 1
