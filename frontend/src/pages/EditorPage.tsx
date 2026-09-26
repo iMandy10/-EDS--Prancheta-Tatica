@@ -7,10 +7,12 @@ import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import AcoesPainel from '../components/AcoesPainel'
 import EstojoPecas from '../components/EstojoPecas'
 import SalvarJogadaModal from '../components/SalvarJogadaModal'
+import ChaveAtletaModal from '../components/ChaveAtletaModal'
 import Button from '../components/Button'
-import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
+import { FolderOpenIcon, LogOutIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
+import { clearChaveTreinador } from '../lib/storage'
 import { agruparPorInstante, cabeNoInstante, compactarOrdens } from '../lib/instantes'
 import { DURACAO_ACAO_MS, ateOInstante, estadoFinal, portadorAoFinal, simular } from '../lib/animacao'
 import { useAnimacao } from '../hooks/useAnimacao'
@@ -101,9 +103,15 @@ export default function EditorPage() {
     setPonto(null)
   })
   const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
+  const [modalChaveAberto, setModalChaveAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
   const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
+
+  function handleSair() {
+    clearChaveTreinador()
+    navigate('/')
+  }
 
   useEffect(() => {
     if (team && !cena) {
@@ -607,15 +615,24 @@ export default function EditorPage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Editor de jogadas</p>
             <h1 className="text-xl font-bold text-slate-900">{team.nome}</h1>
           </div>
-          <Button onClick={() => navigate('/times/jogadas')} variant="outline">
-            <FolderOpenIcon className="h-4 w-4" />
-            Minhas jogadas
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => navigate('/times/jogadas')} variant="outline">
+              <FolderOpenIcon className="h-4 w-4" />
+              Minhas jogadas
+            </Button>
+            <Button onClick={() => setModalChaveAberto(true)} variant="outline">
+              Chave do atleta
+            </Button>
+            <Button onClick={handleSair} variant="ghost">
+              <LogOutIcon className="h-4 w-4" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -818,6 +835,13 @@ export default function EditorPage() {
         erro={erroSalvar}
         onFechar={() => setModalSalvarAberto(false)}
         onSalvar={handleSalvarJogada}
+      />
+
+      <ChaveAtletaModal
+        aberto={modalChaveAberto}
+        nomeTime={team.nome}
+        chaveAtleta={team.chave_atleta}
+        onFechar={() => setModalChaveAberto(false)}
       />
     </div>
   )
