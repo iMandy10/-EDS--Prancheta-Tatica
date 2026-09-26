@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import plays, teams
+from app.routers import access, plays, teams
 
 Base.metadata.create_all(bind=engine)
 
@@ -17,3 +17,4 @@ app.add_middleware(
 
 app.include_router(teams.router)
 app.include_router(plays.router)
+app.include_router(access.router)

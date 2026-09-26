@@ -15,11 +15,13 @@ export const RAIOS: Record<TipoPeca, number> = {
 
 export default function PecaSvg({
   peca,
+  rotulo = peca.id,
   dragging,
   selected,
   onPointerDown,
 }: {
   peca: Peca
+  rotulo?: string
   dragging?: boolean
   selected?: boolean
   onPointerDown?: (event: PointerEvent<SVGGElement>) => void
@@ -49,7 +51,7 @@ export default function PecaSvg({
           fill="white"
           fontWeight="700"
         >
-          {peca.id}
+          {rotulo}
         </text>
       )}
     </g>
