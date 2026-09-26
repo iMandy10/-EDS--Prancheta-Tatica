@@ -46,6 +46,24 @@ def list_plays(
     return db.query(Play).filter(Play.team_id == team.id).order_by(Play.updated_at.desc()).all()
 
 
+@router.get("/plays/{play_id}", response_model=PlayResponse)
+def get_play(
+    play_id: int,
+    x_chave_treinador: str = Header(..., alias="X-Chave-Treinador"),
+    db: Session = Depends(get_db),
+) -> Play:
+    play = (
+        db.query(Play)
+        .join(Team, Team.id == Play.team_id)
+        .filter(Play.id == play_id, Team.chave_treinador == x_chave_treinador)
+        .first()
+    )
+    if play is None:
+        raise HTTPException(status_code=404, detail="Jogada não encontrada")
+
+    return play
+
+
 @router.patch("/plays/{play_id}", response_model=PlayResponse)
 def update_play(
     play_id: int,
