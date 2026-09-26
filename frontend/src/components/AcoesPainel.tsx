@@ -11,10 +11,16 @@ function descreverDestino(destino: Acao['destino']) {
 
 export default function AcoesPainel({
   acoes,
+  editandoId,
   onMover,
+  onEditar,
+  onRemover,
 }: {
   acoes: Acao[]
+  editandoId: string | null
   onMover: (id: string, direcao: -1 | 1) => void
+  onEditar: (id: string) => void
+  onRemover: (id: string) => void
 }) {
   const ordenadas = [...acoes].sort((a, b) => a.ordem - b.ordem)
 
@@ -33,6 +39,7 @@ export default function AcoesPainel({
               <span>
                 <span className="font-medium">{acao.ordem}.</span> {ROTULO_TIPO[acao.tipo]} de {acao.origem} para{' '}
                 {descreverDestino(acao.destino)}
+                {editandoId === acao.id && <span className="ml-1 text-xs text-amber-600">(editando)</span>}
               </span>
               <span className="flex gap-1">
                 <button
@@ -52,6 +59,22 @@ export default function AcoesPainel({
                   className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
                 >
                   ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEditar(acao.id)}
+                  aria-label="Editar seta"
+                  className="rounded px-2 py-1 text-blue-600 hover:bg-blue-50"
+                >
+                  ✎
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemover(acao.id)}
+                  aria-label="Remover seta"
+                  className="rounded px-2 py-1 text-red-600 hover:bg-red-50"
+                >
+                  ✕
                 </button>
               </span>
             </li>

@@ -42,6 +42,7 @@ export default function EditorPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [modoDesenho, setModoDesenho] = useState<TipoAcao | null>(null)
   const [origemSelecionada, setOrigemSelecionada] = useState<string | null>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
   const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
 
   useEffect(() => {
@@ -54,13 +55,34 @@ export default function EditorPage() {
     return () => {
       setModoDesenho((atual) => (atual === tipo ? null : tipo))
       setOrigemSelecionada(null)
+      setEditandoId(null)
     }
+  }
+
+  function iniciarEdicaoAcao(id: string) {
+    const acao = cena?.acoes.find((a) => a.id === id)
+    if (!acao) return
+    setEditandoId(id)
+    setModoDesenho(acao.tipo)
+    setOrigemSelecionada(null)
   }
 
   function criarAcao(destino: Acao['destino']) {
     if (!modoDesenho || !origemSelecionada) return
+    const estavaEditando = editandoId !== null
+
     setCena((prev) => {
       if (!prev) return prev
+
+      if (editandoId) {
+        return {
+          ...prev,
+          acoes: prev.acoes.map((acao) =>
+            acao.id === editandoId ? { ...acao, origem: origemSelecionada, destino } : acao,
+          ),
+        }
+      }
+
       const ordem = prev.acoes.length + 1
       const novaAcao: Acao = {
         id: `a${ordem}`,
@@ -71,7 +93,25 @@ export default function EditorPage() {
       }
       return { ...prev, acoes: [...prev.acoes, novaAcao] }
     })
+
     setOrigemSelecionada(null)
+    if (estavaEditando) {
+      setEditandoId(null)
+      setModoDesenho(null)
+    }
+  }
+
+  function removerAcao(id: string) {
+    setCena((prev) => {
+      if (!prev) return prev
+      const restantes = [...prev.acoes].filter((acao) => acao.id !== id).sort((a, b) => a.ordem - b.ordem)
+      return { ...prev, acoes: restantes.map((acao, index) => ({ ...acao, ordem: index + 1 })) }
+    })
+    if (editandoId === id) {
+      setEditandoId(null)
+      setModoDesenho(null)
+      setOrigemSelecionada(null)
+    }
   }
 
   function moverAcao(id: string, direcao: -1 | 1) {
@@ -232,7 +272,8 @@ export default function EditorPage() {
         <button
           type="button"
           onClick={alternarModoDesenho('movimentacao')}
-          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 ${
+          disabled={editandoId !== null}
+          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 ${
             modoDesenho === 'movimentacao' ? 'bg-emerald-800 ring-2 ring-emerald-300' : 'bg-emerald-600'
           }`}
         >
@@ -241,7 +282,8 @@ export default function EditorPage() {
         <button
           type="button"
           onClick={alternarModoDesenho('passe')}
-          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 ${
+          disabled={editandoId !== null}
+          className={`rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 ${
             modoDesenho === 'passe' ? 'bg-purple-800 ring-2 ring-purple-300' : 'bg-purple-600'
           }`}
         >
@@ -251,9 +293,12 @@ export default function EditorPage() {
 
       {modoDesenho && (
         <p className="text-sm text-gray-600">
+          {editandoId ? 'Editando seta — ' : ''}
           {origemSelecionada
             ? 'Selecione a peça de destino, ou clique num ponto vazio da quadra.'
-            : 'Selecione a peça de origem da seta.'}
+            : editandoId
+              ? 'Selecione a nova peça de origem da seta.'
+              : 'Selecione a peça de origem da seta.'}
         </p>
       )}
 
@@ -293,7 +338,13 @@ export default function EditorPage() {
           })}
         </QuadraSvg>
 
-        <AcoesPainel acoes={cena.acoes} onMover={moverAcao} />
+        <AcoesPainel
+          acoes={cena.acoes}
+          editandoId={editandoId}
+          onMover={moverAcao}
+          onEditar={iniciarEdicaoAcao}
+          onRemover={removerAcao}
+        />
       </div>
     </div>
   )
