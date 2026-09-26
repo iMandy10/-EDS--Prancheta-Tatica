@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.play import Play
 from app.models.team import Team
 from app.schemas.access import TeamAccessResponse
-from app.schemas.play import PlaySummary
+from app.schemas.play import PlayResponse, PlaySummary
 
 router = APIRouter(tags=["access"])
 
@@ -34,3 +34,27 @@ def list_published_plays(
         .order_by(Play.updated_at.desc())
         .all()
     )
+
+
+@router.get("/teams/{team_id}/plays/published/{play_id}", response_model=PlayResponse)
+def get_published_play(
+    team_id: int,
+    play_id: int,
+    x_chave_atleta: str = Header(..., alias="X-Chave-Atleta"),
+    db: Session = Depends(get_db),
+) -> Play:
+    play = (
+        db.query(Play)
+        .join(Team, Team.id == Play.team_id)
+        .filter(
+            Play.id == play_id,
+            Play.team_id == team_id,
+            Play.status == "publicada",
+            Team.chave_atleta == x_chave_atleta,
+        )
+        .first()
+    )
+    if play is None:
+        raise HTTPException(status_code=404, detail="Jogada não encontrada")
+
+    return play
