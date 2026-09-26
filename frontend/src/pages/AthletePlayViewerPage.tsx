@@ -7,29 +7,39 @@ import { useAnimacao } from '../hooks/useAnimacao'
 import QuadraSvg from '../components/QuadraSvg'
 import PecaSvg from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
+import ControlesAnimacao from '../components/ControlesAnimacao'
 
 function AnimacaoJogada({ cena }: { cena: Cena }) {
-  const { pecas, passos } = useAnimacao(cena)
+  const { pecas, passos, duracao, tocando, tocar, pausar, reiniciar } = useAnimacao(cena)
 
   return (
-    <QuadraSvg quadra={cena.quadra}>
-      <SetaMarkerDefs />
-      <g opacity={0.35}>
-        {passos.map((passo) => (
-          <AcaoSvg
-            key={passo.acao.id}
-            x1={passo.de.x}
-            y1={passo.de.y}
-            x2={passo.para.x}
-            y2={passo.para.y}
-            tipo={passo.acao.tipo}
-          />
+    <>
+      <QuadraSvg quadra={cena.quadra}>
+        <SetaMarkerDefs />
+        <g opacity={0.35}>
+          {passos.map((passo) => (
+            <AcaoSvg
+              key={passo.acao.id}
+              x1={passo.de.x}
+              y1={passo.de.y}
+              x2={passo.para.x}
+              y2={passo.para.y}
+              tipo={passo.acao.tipo}
+            />
+          ))}
+        </g>
+        {pecas.map((peca) => (
+          <PecaSvg key={peca.id} peca={peca} />
         ))}
-      </g>
-      {pecas.map((peca) => (
-        <PecaSvg key={peca.id} peca={peca} />
-      ))}
-    </QuadraSvg>
+      </QuadraSvg>
+      <ControlesAnimacao
+        tocando={tocando}
+        desabilitado={duracao === 0}
+        onTocar={tocar}
+        onPausar={pausar}
+        onReiniciar={reiniciar}
+      />
+    </>
   )
 }
 

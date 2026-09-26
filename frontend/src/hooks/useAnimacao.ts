@@ -6,7 +6,7 @@ export function useAnimacao(cena: Cena) {
   const passos = useMemo(() => montarPassos(cena), [cena])
   const duracao = passos.length * DURACAO_ACAO_MS
   const [tempo, setTempo] = useState(0)
-  const [tocando, setTocando] = useState(true)
+  const [tocando, setTocando] = useState(false)
   const tempoRef = useRef(0)
 
   useEffect(() => {
@@ -28,7 +28,22 @@ export function useAnimacao(cena: Cena) {
     return () => cancelAnimationFrame(frame)
   }, [tocando, duracao])
 
+  function voltarAoInicio() {
+    tempoRef.current = 0
+    setTempo(0)
+  }
+
+  function tocar() {
+    if (tempoRef.current >= duracao) voltarAoInicio()
+    setTocando(true)
+  }
+
+  function reiniciar() {
+    voltarAoInicio()
+    setTocando(true)
+  }
+
   const pecas = useMemo(() => posicoesNoTempo(cena.pecas, passos, tempo), [cena.pecas, passos, tempo])
 
-  return { pecas, passos, tempo, duracao, tocando }
+  return { pecas, passos, tempo, duracao, tocando, tocar, pausar: () => setTocando(false), reiniciar }
 }
