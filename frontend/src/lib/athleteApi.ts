@@ -1,4 +1,4 @@
-import type { Modalidade } from './api'
+import type { Modalidade, PlaySummary } from './api'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -18,6 +18,18 @@ export async function getTeamByChaveAtleta(chaveAtleta: string): Promise<TeamAcc
   }
   if (!response.ok) {
     throw new Error('Não foi possível validar a chave.')
+  }
+
+  return response.json()
+}
+
+export async function getPublishedPlays(teamId: number, chaveAtleta: string): Promise<PlaySummary[]> {
+  const response = await fetch(`${API_URL}/teams/${teamId}/plays/published`, {
+    headers: { 'X-Chave-Atleta': chaveAtleta },
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar as jogadas.')
   }
 
   return response.json()
