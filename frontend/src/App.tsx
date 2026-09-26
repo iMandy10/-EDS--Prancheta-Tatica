@@ -6,6 +6,7 @@ import EditorPage from './pages/EditorPage'
 import MinhasJogadasPage from './pages/MinhasJogadasPage'
 import AthleteEntryPage from './pages/AthleteEntryPage'
 import AthletePlaysPage from './pages/AthletePlaysPage'
+import AthletePlayViewerPage from './pages/AthletePlayViewerPage'
 import { getChaveTreinador } from './lib/storage'
 
 function RootRoute() {
@@ -25,6 +26,7 @@ function App() {
       <Route path="/times/jogadas" element={<MinhasJogadasPage />} />
       <Route path="/atleta" element={<AthleteEntryPage />} />
       <Route path="/atleta/jogadas" element={<AthletePlaysPage />} />
+      <Route path="/atleta/jogadas/:playId" element={<AthletePlayViewerPage />} />
     </Routes>
   )
 }
