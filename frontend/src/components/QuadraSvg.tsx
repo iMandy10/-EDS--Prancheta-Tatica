@@ -38,11 +38,13 @@ function BasqueteMarkings() {
 export default function QuadraSvg({
   quadra,
   children,
+  onPointerDown,
   onPointerMove,
   onPointerUp,
 }: {
   quadra: Modalidade
   children?: ReactNode
+  onPointerDown?: (event: PointerEvent<SVGSVGElement>) => void
   onPointerMove?: (event: PointerEvent<SVGSVGElement>) => void
   onPointerUp?: (event: PointerEvent<SVGSVGElement>) => void
 }) {
@@ -54,6 +56,7 @@ export default function QuadraSvg({
       className="w-full max-w-3xl rounded-md"
       role="img"
       aria-label={`Quadra de ${quadra}`}
+      onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}

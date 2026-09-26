@@ -1,9 +1,10 @@
-import { useEffect, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
-import type { Cena, Peca } from '../types/cena'
+import type { Cena, Peca, TipoPeca } from '../types/cena'
+import type { Modalidade } from '../lib/api'
 
 const PECAS_INICIAIS: Peca[] = [
   { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
@@ -12,6 +13,11 @@ const PECAS_INICIAIS: Peca[] = [
   { id: 'B2', tipo: 'jogador_time_b', x: 550, y: 350 },
   { id: 'bola', tipo: 'bola', x: 400, y: 250 },
 ]
+
+const MAX_JOGADORES: Record<Modalidade, number> = {
+  futebol: 11,
+  basquete: 5,
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -31,6 +37,8 @@ export default function EditorPage() {
   const { chave, team, notFound } = useTeamSession()
   const [cena, setCena] = useState<Cena | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const proximoIdRef = useRef({ jogador_time_a: 3, jogador_time_b: 3 })
 
   useEffect(() => {
     if (team && !cena) {
@@ -39,10 +47,16 @@ export default function EditorPage() {
   }, [team, cena])
 
   function handlePecaPointerDown(id: string) {
-    return (event: PointerEvent) => {
+    return (event: PointerEvent<SVGGElement>) => {
       event.preventDefault()
+      event.stopPropagation()
       setDraggingId(id)
+      setSelectedId(id)
     }
+  }
+
+  function handleSvgPointerDown() {
+    setSelectedId(null)
   }
 
   function handleSvgPointerMove(event: PointerEvent<SVGSVGElement>) {
@@ -70,6 +84,31 @@ export default function EditorPage() {
     setDraggingId(null)
   }
 
+  function handleAdicionarJogador(tipo: 'jogador_time_a' | 'jogador_time_b') {
+    return () => {
+      if (!cena) return
+      const max = MAX_JOGADORES[cena.quadra]
+      const atuais = cena.pecas.filter((peca) => peca.tipo === tipo)
+      if (atuais.length >= max) return
+
+      const prefixo = tipo === 'jogador_time_a' ? 'A' : 'B'
+      const numero = proximoIdRef.current[tipo]++
+      const novaPeca: Peca = {
+        id: `${prefixo}${numero}`,
+        tipo,
+        x: tipo === 'jogador_time_a' ? 250 : 550,
+        y: 100 + (atuais.length % 5) * 70,
+      }
+      setCena({ ...cena, pecas: [...cena.pecas, novaPeca] })
+    }
+  }
+
+  function handleRemoverSelecionado() {
+    if (!selectedId) return
+    setCena((prev) => (prev ? { ...prev, pecas: prev.pecas.filter((peca) => peca.id !== selectedId) } : prev))
+    setSelectedId(null)
+  }
+
   if (!chave || notFound) {
     return <Navigate to="/" replace />
   }
@@ -82,15 +121,58 @@ export default function EditorPage() {
     )
   }
 
+  const contagem: Record<TipoPeca, number> = {
+    jogador_time_a: cena.pecas.filter((peca) => peca.tipo === 'jogador_time_a').length,
+    jogador_time_b: cena.pecas.filter((peca) => peca.tipo === 'jogador_time_b').length,
+    bola: cena.pecas.filter((peca) => peca.tipo === 'bola').length,
+  }
+  const max = MAX_JOGADORES[cena.quadra]
+  const selecionada = cena.pecas.find((peca) => peca.id === selectedId)
+  const podeRemover = selecionada && selecionada.tipo !== 'bola'
+
   return (
     <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center gap-4 p-6">
       <h1 className="text-xl font-semibold text-gray-900">{team.nome}</h1>
-      <QuadraSvg quadra={cena.quadra} onPointerMove={handleSvgPointerMove} onPointerUp={handleSvgPointerUp}>
+
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={handleAdicionarJogador('jogador_time_a')}
+          disabled={contagem.jogador_time_a >= max}
+          className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          + Jogador Time A ({contagem.jogador_time_a}/{max})
+        </button>
+        <button
+          type="button"
+          onClick={handleAdicionarJogador('jogador_time_b')}
+          disabled={contagem.jogador_time_b >= max}
+          className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          + Jogador Time B ({contagem.jogador_time_b}/{max})
+        </button>
+        <button
+          type="button"
+          onClick={handleRemoverSelecionado}
+          disabled={!podeRemover}
+          className="rounded-md bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+        >
+          Remover jogador selecionado
+        </button>
+      </div>
+
+      <QuadraSvg
+        quadra={cena.quadra}
+        onPointerDown={handleSvgPointerDown}
+        onPointerMove={handleSvgPointerMove}
+        onPointerUp={handleSvgPointerUp}
+      >
         {cena.pecas.map((peca) => (
           <PecaSvg
             key={peca.id}
             peca={peca}
             dragging={peca.id === draggingId}
+            selected={peca.id === selectedId}
             onPointerDown={handlePecaPointerDown(peca.id)}
           />
         ))}

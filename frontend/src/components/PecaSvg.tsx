@@ -16,10 +16,12 @@ export const RAIOS: Record<TipoPeca, number> = {
 export default function PecaSvg({
   peca,
   dragging,
+  selected,
   onPointerDown,
 }: {
   peca: Peca
   dragging?: boolean
+  selected?: boolean
   onPointerDown?: (event: PointerEvent<SVGGElement>) => void
 }) {
   return (
@@ -28,6 +30,9 @@ export default function PecaSvg({
       transform={`translate(${peca.x}, ${peca.y})`}
       onPointerDown={onPointerDown}
     >
+      {selected && (
+        <circle r={RAIOS[peca.tipo] + 5} fill="none" stroke="#facc15" strokeWidth={3} />
+      )}
       <circle r={RAIOS[peca.tipo]} fill={CORES[peca.tipo]} stroke="white" strokeWidth={2} />
       {peca.tipo !== 'bola' && (
         <text textAnchor="middle" dominantBaseline="central" fontSize={12} fill="white" fontWeight="bold">
