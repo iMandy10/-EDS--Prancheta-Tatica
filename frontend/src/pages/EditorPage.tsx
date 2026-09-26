@@ -75,6 +75,7 @@ export default function EditorPage() {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [acaoSelecionadaId, setAcaoSelecionadaId] = useState<string | null>(null)
   const [pontaSeta, setPontaSeta] = useState<{ x: number; y: number } | null>(null)
+  const [arrastandoPonta, setArrastandoPonta] = useState(false)
   const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
@@ -258,7 +259,7 @@ export default function EditorPage() {
 
   function handleSvgPointerMove(event: PointerEvent<SVGSVGElement>) {
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
-    if (modoDesenho && origemSelecionada && cena?.quadra === 'basquete') {
+    if (((modoDesenho && origemSelecionada) || arrastandoPonta) && cena?.quadra === 'basquete') {
       setPontaSeta({ x, y })
       return
     }
@@ -303,6 +304,17 @@ export default function EditorPage() {
   function handleSvgPointerUp(event: PointerEvent<SVGSVGElement>) {
     setDraggingId(null)
     if (!cena || cena.quadra !== 'basquete') return
+
+    const selecionada = cena.acoes.find((acao) => acao.id === acaoSelecionadaId)
+    if (arrastandoPonta && selecionada) {
+      const destino = destinoAoSoltar(event, selecionada.origem)
+      if (destino) {
+        setCena((prev) => prev && { ...prev, acoes: editarAcao(prev.acoes, selecionada.id, { destino }, prev.pecas) })
+      }
+      setArrastandoPonta(false)
+      setPontaSeta(null)
+      return
+    }
 
     if (!modoDesenho || !origemSelecionada) return
     const destino = destinoAoSoltar(event, origemSelecionada)
@@ -440,14 +452,16 @@ export default function EditorPage() {
   const podeRemover =
     setaSelecionadaNoBasquete || (selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete'))
   const origemDaSeta = cena.pecas.find((peca) => peca.id === origemSelecionada)
-  // Geometria de cada seta.
+  // Geometria de cada seta; a seta selecionada acompanha o cursor enquanto a ponta é arrastada.
   const setasNaQuadra = cena.acoes.flatMap((acao) => {
     const origem = cena.pecas.find((peca) => peca.id === acao.origem)
     const destino =
       typeof acao.destino === 'string' ? cena.pecas.find((peca) => peca.id === acao.destino) : acao.destino
     if (!origem || !destino) return []
-    return [{ acao, x1: origem.x, y1: origem.y, x2: destino.x, y2: destino.y }]
+    const ponta = acao.id === acaoSelecionadaId && arrastandoPonta && pontaSeta ? pontaSeta : destino
+    return [{ acao, x1: origem.x, y1: origem.y, x2: ponta.x, y2: ponta.y }]
   })
+  const setaSelecionada = setasNaQuadra.find((seta) => seta.acao.id === acaoSelecionadaId)
 
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
@@ -600,6 +614,24 @@ export default function EditorPage() {
             </g>
           )}
           </g>
+          {cena.quadra === 'basquete' && setaSelecionada && (
+            <circle
+              cx={setaSelecionada.x2}
+              cy={setaSelecionada.y2}
+              r={7}
+              fill="white"
+              stroke="#facc15"
+              strokeWidth={3}
+              className="cursor-grab touch-none"
+              aria-label="Arrastar a ponta da seta"
+              onPointerDown={(event) => {
+                // Sem isso, um duplo clique seleciona o número da peça embaixo e o arraste vira arraste de texto.
+                event.preventDefault()
+                event.stopPropagation()
+                setArrastandoPonta(true)
+              }}
+            />
+          )}
         </QuadraSvg>
         </div>
 
