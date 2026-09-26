@@ -1,8 +1,10 @@
-import type { ReactNode } from 'react'
+import type { PointerEvent, ReactNode } from 'react'
 import type { Modalidade } from '../lib/api'
 
 const WIDTH = 800
 const HEIGHT = 500
+
+export const QUADRA_LIMITES = { minX: 20, minY: 20, maxX: 780, maxY: 480 }
 
 function FutebolMarkings() {
   return (
@@ -33,7 +35,17 @@ function BasqueteMarkings() {
   )
 }
 
-export default function QuadraSvg({ quadra, children }: { quadra: Modalidade; children?: ReactNode }) {
+export default function QuadraSvg({
+  quadra,
+  children,
+  onPointerMove,
+  onPointerUp,
+}: {
+  quadra: Modalidade
+  children?: ReactNode
+  onPointerMove?: (event: PointerEvent<SVGSVGElement>) => void
+  onPointerUp?: (event: PointerEvent<SVGSVGElement>) => void
+}) {
   const backgroundColor = quadra === 'futebol' ? '#2e7d32' : '#c98a4b'
 
   return (
@@ -42,6 +54,9 @@ export default function QuadraSvg({ quadra, children }: { quadra: Modalidade; ch
       className="w-full max-w-3xl rounded-md"
       role="img"
       aria-label={`Quadra de ${quadra}`}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
     >
       <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill={backgroundColor} />
       {quadra === 'futebol' ? <FutebolMarkings /> : <BasqueteMarkings />}
