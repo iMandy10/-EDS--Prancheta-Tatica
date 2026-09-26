@@ -68,6 +68,7 @@ export default function EditorPage() {
   const location = useLocation()
   const cenaInicial = (location.state as { cenaInicial?: Cena } | null)?.cenaInicial
   const [cena, setCena] = useState<Cena | null>(null)
+  const quadra = cena?.quadra
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [modoDesenho, setModoDesenho] = useState<TipoAcao | null>(null)
@@ -89,17 +90,29 @@ export default function EditorPage() {
   }, [team, cena, cenaInicial])
 
   useEffect(() => {
-    function sairComEsc(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return
-      setModoDesenho(null)
-      setOrigemSelecionada(null)
-      setEditandoId(null)
-      setPontaSeta(null)
-      setAcaoSelecionadaId(null)
+    function atalhos(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setModoDesenho(null)
+        setOrigemSelecionada(null)
+        setEditandoId(null)
+        setPontaSeta(null)
+        setAcaoSelecionadaId(null)
+        return
+      }
+      // Delete/Backspace removem a seta selecionada no basquete, exceto enquanto se digita num campo.
+      const digitando = (event.target as HTMLElement).closest('input, textarea')
+      if ((event.key === 'Delete' || event.key === 'Backspace') && !digitando && quadra === 'basquete') {
+        if (!acaoSelecionadaId) return
+        setCena((prev) => {
+          if (!prev) return prev
+          return { ...prev, acoes: compactarOrdens(prev.acoes.filter((acao) => acao.id !== acaoSelecionadaId)) }
+        })
+        setAcaoSelecionadaId(null)
+      }
     }
-    window.addEventListener('keydown', sairComEsc)
-    return () => window.removeEventListener('keydown', sairComEsc)
-  }, [])
+    window.addEventListener('keydown', atalhos)
+    return () => window.removeEventListener('keydown', atalhos)
+  }, [acaoSelecionadaId, quadra])
 
   function alternarModoDesenho(tipo: TipoAcao) {
     return () => {
