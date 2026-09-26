@@ -1,6 +1,6 @@
 import type { Acao, Cena, Peca } from '../types/cena'
 import { agruparPorInstante } from './instantes'
-import { jogadorNaArea } from './basquete'
+import { aoLadoDoJogador, jogadorNaArea } from './basquete'
 
 export const DURACAO_ACAO_MS = 1000
 
@@ -23,17 +23,21 @@ export interface Passo {
 // na movimentação e no bloqueio, a própria peça de origem; no drible, a peça de origem leva a bola junto.
 // O passe mira onde o receptor termina o instante, então os deslocamentos do instante são resolvidos antes;
 // com destino livre, o receptor é o jogador em cuja área de identificação a ponta cai.
-export function montarPassos(cena: Cena): Passo[] {
+// No basquete a bola tem posse: ela acompanha quem está com ela em qualquer deslocamento, só quem tem a
+// posse passa ou dribla (as demais ações desse tipo são ignoradas) e o passe entrega a posse ao receptor.
+function simular(cena: Cena): { passos: Passo[]; portador: string | null } {
   const posicoes = new Map(cena.pecas.map((peca) => [peca.id, { x: peca.x, y: peca.y }]))
   const bola = cena.pecas.find((peca) => peca.tipo === 'bola')
+  const comPosse = cena.quadra === 'basquete'
+  let portador = (comPosse && bola?.posse) || null
   const passos: Passo[] = []
 
-  // No basquete, um passe para ponto livre na área de um jogador (nas posições do fim do instante) vai até ele.
+  // Jogador que recebe o passe: o destino, se for um jogador, ou quem tem a ponta na área de identificação.
   const receptor = (acao: Acao) => {
-    if (cena.quadra !== 'basquete' || acao.tipo !== 'passe' || typeof acao.destino === 'string') return undefined
+    if (cena.quadra !== 'basquete' || acao.tipo !== 'passe') return undefined
     const pecasAgora = cena.pecas.map((peca) => ({ ...peca, ...posicoes.get(peca.id) }))
-    const jogador = jogadorNaArea(acao.destino, pecasAgora, acao.origem)
-    return jogador && posicoes.get(jogador.id)
+    if (typeof acao.destino !== 'string') return jogadorNaArea(acao.destino, pecasAgora, acao.origem)
+    return pecasAgora.find((peca) => peca.id === acao.destino && peca.tipo !== 'bola')
   }
 
   agruparPorInstante(cena.acoes).forEach((grupo, instante) => {
@@ -44,8 +48,29 @@ export function montarPassos(cena: Cena): Passo[] {
     for (const acao of [...deslocamentos, ...passes]) {
       const de = inicio.get(acao.origem)
       const alvos = acao.tipo === 'passe' ? posicoes : inicio
-      const para = typeof acao.destino === 'string' ? alvos.get(acao.destino) : (receptor(acao) ?? acao.destino)
+      const recebedor = receptor(acao)
+      const destino = typeof acao.destino === 'string' ? alvos.get(acao.destino) : acao.destino
+      const para = recebedor ? posicoes.get(recebedor.id) : destino
       if (!de || !para || (acao.tipo === 'passe' && !bola)) continue
+
+      if (comPosse && bola) {
+        const deBola = inicio.get(bola.id)
+        if ((acao.tipo === 'passe' || acao.tipo === 'drible') && acao.origem !== portador) continue
+        if (acao.tipo === 'passe') {
+          const paraBola = recebedor ? aoLadoDoJogador(para) : para
+          if (deBola) passos.push({ acao, pecaId: bola.id, de: { ...deBola }, para: paraBola, instante })
+          posicoes.set(bola.id, paraBola)
+          portador = recebedor?.id ?? null
+          continue
+        }
+        passos.push({ acao, pecaId: acao.origem, de: { ...de }, para: { ...para }, instante })
+        posicoes.set(acao.origem, { ...para })
+        if (acao.origem === portador && deBola) {
+          passos.push({ acao, pecaId: bola.id, de: { ...deBola }, para: aoLadoDoJogador(para), instante })
+          posicoes.set(bola.id, aoLadoDoJogador(para))
+        }
+        continue
+      }
 
       const pecaId = acao.tipo === 'passe' && bola ? bola.id : acao.origem
       passos.push({ acao, pecaId, de: { ...de }, para: { ...para }, instante })
@@ -57,7 +82,16 @@ export function montarPassos(cena: Cena): Passo[] {
     }
   })
 
-  return passos
+  return { passos, portador }
+}
+
+export function montarPassos(cena: Cena): Passo[] {
+  return simular(cena).passos
+}
+
+// Quem está com a bola depois de todas as ações da cena (null = bola solta ou sem posse).
+export function portadorAoFinal(cena: Cena): string | null {
+  return simular(cena).portador
 }
 
 export function contarInstantes(passos: Passo[]): number {
