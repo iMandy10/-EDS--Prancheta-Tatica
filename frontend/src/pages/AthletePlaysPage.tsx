@@ -63,7 +63,11 @@ export default function AthletePlaysPage() {
         ) : (
           <ul className="flex flex-col gap-3">
             {jogadas.map((jogada) => (
-              <AthletePlayCard key={jogada.id} jogada={jogada} />
+              <AthletePlayCard
+                key={jogada.id}
+                jogada={jogada}
+                onAbrir={() => navigate(`/atleta/jogadas/${jogada.id}`, { state: sessao })}
+              />
             ))}
           </ul>
         )}
