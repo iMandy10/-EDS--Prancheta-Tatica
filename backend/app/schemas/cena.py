@@ -8,6 +8,8 @@ class Peca(BaseModel):
     tipo: Literal["jogador_time_a", "jogador_time_b", "bola"]
     x: float
     y: float
+    # Só na bola: id do jogador que está com ela (None = bola solta em x, y).
+    posse: str | None = None
 
 
 class PontoDestino(BaseModel):
@@ -32,6 +34,14 @@ class Cena(BaseModel):
     def validar_acoes(self) -> "Cena":
         ids_pecas = {peca.id for peca in self.pecas}
         ids_bola = {peca.id for peca in self.pecas if peca.tipo == "bola"}
+        for peca in self.pecas:
+            if peca.posse is None:
+                continue
+            if peca.tipo != "bola":
+                raise ValueError(f"peca '{peca.id}': só a bola pode ter posse")
+            if peca.posse not in ids_pecas - ids_bola:
+                raise ValueError(f"bola: posse '{peca.posse}' não corresponde a nenhum jogador da cena")
+
         for acao in self.acoes:
             if acao.origem not in ids_pecas:
                 raise ValueError(f"acao '{acao.id}': origem '{acao.origem}' não corresponde a nenhuma peca da cena")
