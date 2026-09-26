@@ -8,11 +8,15 @@ import type { Acao, Peca } from '../types/cena'
 const ROTULO_TIPO: Record<Acao['tipo'], string> = {
   movimentacao: 'Movimentação',
   passe: 'Passe',
+  bloqueio: 'Bloqueio',
+  drible: 'Drible',
 }
 
 const COR_TIPO: Record<Acao['tipo'], string> = {
   movimentacao: 'bg-emerald-500',
   passe: 'bg-violet-500',
+  bloqueio: 'bg-orange-500',
+  drible: 'bg-sky-500',
 }
 
 function descreverDestino(destino: Acao['destino'], quadra: Modalidade) {

@@ -9,7 +9,7 @@ export interface Peca {
   y: number
 }
 
-export type TipoAcao = 'movimentacao' | 'passe'
+export type TipoAcao = 'movimentacao' | 'passe' | 'bloqueio' | 'drible'
 
 export interface PontoDestino {
   x: number
