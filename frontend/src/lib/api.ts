@@ -24,3 +24,13 @@ export async function createTeam(nome: string, modalidade: Modalidade): Promise<
 
   return response.json()
 }
+
+export async function getTeamByChaveTreinador(chaveTreinador: string): Promise<Team> {
+  const response = await fetch(`${API_URL}/teams/${chaveTreinador}`)
+
+  if (!response.ok) {
+    throw new Error('Time não encontrado.')
+  }
+
+  return response.json()
+}

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createTeam, type Modalidade } from '../lib/api'
+import { setChaveTreinador } from '../lib/storage'
 
 export default function CreateTeamPage() {
   const navigate = useNavigate()
@@ -26,6 +27,7 @@ export default function CreateTeamPage() {
     setLoading(true)
     try {
       const team = await createTeam(nomeTrimmed, modalidade)
+      setChaveTreinador(team.chave_treinador)
       navigate('/times/confirmacao', { state: { team } })
     } catch {
       setError('Não foi possível criar o time. Verifique se o servidor está rodando e tente novamente.')
