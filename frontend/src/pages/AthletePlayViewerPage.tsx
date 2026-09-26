@@ -8,30 +8,32 @@ import QuadraSvg from '../components/QuadraSvg'
 import PecaSvg from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import ControlesAnimacao from '../components/ControlesAnimacao'
+import BarraProgresso from '../components/BarraProgresso'
 
 function AnimacaoJogada({ cena }: { cena: Cena }) {
-  const { pecas, passos, duracao, tocando, tocar, pausar, reiniciar } = useAnimacao(cena)
+  const { pecas, passos, instanteAtual, tempo, duracao, tocando, tocar, pausar, reiniciar } = useAnimacao(cena)
 
   return (
     <>
       <QuadraSvg quadra={cena.quadra}>
         <SetaMarkerDefs />
-        <g opacity={0.35}>
-          {passos.map((passo) => (
+        {passos.map((passo) => (
+          <g key={passo.acao.id} opacity={passo.instante === instanteAtual ? 1 : 0.35}>
             <AcaoSvg
-              key={passo.acao.id}
               x1={passo.de.x}
               y1={passo.de.y}
               x2={passo.para.x}
               y2={passo.para.y}
               tipo={passo.acao.tipo}
+              destacada={passo.instante === instanteAtual}
             />
-          ))}
-        </g>
+          </g>
+        ))}
         {pecas.map((peca) => (
           <PecaSvg key={peca.id} peca={peca} />
         ))}
       </QuadraSvg>
+      <BarraProgresso progresso={duracao > 0 ? tempo / duracao : 0} />
       <ControlesAnimacao
         tocando={tocando}
         desabilitado={duracao === 0}

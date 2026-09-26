@@ -44,6 +44,7 @@ export function useAnimacao(cena: Cena) {
   }
 
   const pecas = useMemo(() => posicoesNoTempo(cena.pecas, passos, tempo), [cena.pecas, passos, tempo])
+  const instanteAtual = tempo > 0 && tempo < duracao ? Math.floor(tempo / DURACAO_ACAO_MS) : null
 
-  return { pecas, passos, tempo, duracao, tocando, tocar, pausar: () => setTocando(false), reiniciar }
+  return { pecas, passos, instanteAtual, tempo, duracao, tocando, tocar, pausar: () => setTocando(false), reiniciar }
 }
