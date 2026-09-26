@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { PlaySummary } from '../lib/api'
+import Button from './Button'
 
 export default function EditarJogadaModal({
   jogada,
@@ -34,13 +35,13 @@ export default function EditarJogadaModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Editar jogada</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-xl">
+        <h2 className="mb-5 text-lg font-bold text-slate-900">Editar jogada</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="editar-titulo" className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="editar-titulo" className="text-sm font-medium text-slate-700">
               Título
             </label>
             <input
@@ -48,20 +49,20 @@ export default function EditarJogadaModal({
               type="text"
               value={titulo}
               onChange={(event) => setTitulo(event.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="rounded-lg border border-slate-300 px-3.5 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
               autoFocus
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="editar-descricao" className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="editar-descricao" className="text-sm font-medium text-slate-700">
               Descrição (opcional)
             </label>
             <textarea
               id="editar-descricao"
               value={descricao}
               onChange={(event) => setDescricao(event.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              className="rounded-lg border border-slate-300 px-3.5 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
               rows={3}
             />
           </div>
@@ -69,21 +70,12 @@ export default function EditarJogadaModal({
           {erro && <p className="text-sm text-red-600">{erro}</p>}
 
           <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onFechar}
-              disabled={salvando}
-              className="rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-            >
+            <Button type="button" onClick={onFechar} disabled={salvando} variant="outline">
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={salvando || !titulo.trim()}
-              className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" disabled={salvando || !titulo.trim()} variant="primary">
               {salvando ? 'Salvando...' : 'Salvar'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
