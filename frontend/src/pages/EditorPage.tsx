@@ -11,8 +11,8 @@ import Button from '../components/Button'
 import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
-import { cabeNoInstante, compactarOrdens } from '../lib/instantes'
-import { portadorAoFinal, simular } from '../lib/animacao'
+import { agruparPorInstante, cabeNoInstante, compactarOrdens } from '../lib/instantes'
+import { ateOInstante, estadoFinal, portadorAoFinal, simular } from '../lib/animacao'
 import {
   FOLGA_FIM_SETA,
   FOLGA_INICIO_SETA,
@@ -88,6 +88,8 @@ export default function EditorPage() {
   const [pontaSeta, setPontaSeta] = useState<{ x: number; y: number } | null>(null)
   const [arrastandoPonta, setArrastandoPonta] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
+  // Ponto da jogada em que a prancheta está (basquete): k = antes do instante k; null = fim da jogada.
+  const [ponto, setPonto] = useState<number | null>(null)
   const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
@@ -135,6 +137,29 @@ export default function EditorPage() {
     }
   }
 
+  // No basquete, a prancheta mostra a jogada num ponto: antes de um instante escolhido no painel, ou no fim.
+  // É dali que se desenham novas ações; peças só se arrastam no primeiro ponto (formação inicial).
+  const comPontos = (c: Cena) => c.quadra === 'basquete'
+  const totalInstantes = (c: Cena) => agruparPorInstante(c.acoes).length
+  const pontoDe = (c: Cena) => (ponto === null ? totalInstantes(c) : Math.min(ponto, totalInstantes(c)))
+  const pecasEmTela = (c: Cena) => {
+    if (!comPontos(c)) return c.pecas
+    return estadoFinal(ateOInstante(c, pontoDe(c)))
+  }
+
+  function limparInteracao() {
+    setSelectedId(null)
+    setModoDesenho(null)
+    setOrigemSelecionada(null)
+    setAcaoSelecionadaId(null)
+    setAviso(null)
+  }
+
+  function irParaPonto(k: number) {
+    setPonto(cena && k >= totalInstantes(cena) ? null : k)
+    limparInteracao()
+  }
+
   // No basquete, com uma seta selecionada, a ferramenta do estojo troca o tipo dela em vez de desenhar.
   function escolherFerramenta(tipo: TipoAcao) {
     if (acaoSelecionadaId) {
@@ -171,7 +196,11 @@ export default function EditorPage() {
         return { ...prev, acoes: editarAcao(prev.acoes, editandoId, { origem: origemSelecionada, destino }, prev.pecas) }
       }
 
-      const ordem = Math.max(0, ...prev.acoes.map((acao) => acao.ordem)) + 1
+      // A nova ação entra como um instante novo no ponto em que a prancheta está; os seguintes são empurrados.
+      const ordens = [...new Set(prev.acoes.map((acao) => acao.ordem))].sort((a, b) => a - b)
+      const k = ponto === null ? ordens.length : Math.min(ponto, ordens.length)
+      const ordem = k < ordens.length ? ordens[k] : Math.max(0, ...ordens) + 1
+      const empurradas = prev.acoes.map((acao) => (acao.ordem >= ordem ? { ...acao, ordem: acao.ordem + 1 } : acao))
       const numero = Math.max(0, ...prev.acoes.map((acao) => Number(acao.id.slice(1)) || 0)) + 1
       const novaAcao: Acao = {
         id: `a${numero}`,
@@ -180,9 +209,11 @@ export default function EditorPage() {
         destino,
         ordem,
       }
-      return { ...prev, acoes: [...prev.acoes, novaAcao] }
+      return { ...prev, acoes: compactarOrdens([...empurradas, novaAcao]) }
     })
 
+    // A prancheta avança para logo depois da ação criada, para continuar a jogada em sequência.
+    if (!estavaEditando && ponto !== null) setPonto(ponto + 1)
     setOrigemSelecionada(null)
     if (estavaEditando) {
       setEditandoId(null)
@@ -250,11 +281,11 @@ export default function EditorPage() {
       if (modoDesenho && cena?.quadra === 'basquete') {
         // No basquete a seta é desenhada arrastando: começa aqui e termina no pointerup da quadra.
         // Se a bola está com um jogador, a seta sai de quem tem a posse.
-        const bola = cena.pecas.find((peca) => peca.id === id && peca.tipo === 'bola')
+        const bola = pecasEmTela(cena).find((peca) => peca.id === id && peca.tipo === 'bola')
         const origem = bola?.posse ?? id
         // Só quem está com a bola (depois das ações já desenhadas) pode passar ou driblar.
         const levaBola = modoDesenho === 'passe' || modoDesenho === 'drible'
-        if (levaBola && !editandoId && origem !== portadorAoFinal(cena)) {
+        if (levaBola && !editandoId && origem !== portadorAoFinal(ateOInstante(cena, pontoDe(cena)))) {
           setAviso('Só quem está com a bola pode passar ou driblar.')
           return
         }
@@ -275,9 +306,13 @@ export default function EditorPage() {
         return
       }
 
-      setDraggingId(id)
       setSelectedId(id)
       if (cena?.quadra === 'basquete') setAcaoSelecionadaId(null)
+      if (cena && comPontos(cena) && pontoDe(cena) > 0) {
+        setAviso('Aqui as peças estão onde a jogada as deixa. Para reposicioná-las, selecione o Instante 1 no painel.')
+        return
+      }
+      setDraggingId(id)
     }
   }
 
@@ -325,7 +360,7 @@ export default function EditorPage() {
   function destinoAoSoltar(event: PointerEvent<SVGSVGElement>, origemId: string): Acao['destino'] | null {
     if (!cena) return null
     const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
-    const origem = cena.pecas.find((peca) => peca.id === origemId)
+    const origem = pecasEmTela(cena).find((peca) => peca.id === origemId)
     const naOrigem = origem && Math.hypot(origem.x - x, origem.y - y) <= RAIOS[origem.tipo] + 4
     const { width, height } = event.currentTarget.viewBox.baseVal
 
@@ -431,6 +466,7 @@ export default function EditorPage() {
   function limparPrancheta() {
     if (!window.confirm('Limpar a prancheta? Todas as peças e setas serão removidas.')) return
     setCena((prev) => (prev ? { ...prev, pecas: [], acoes: [] } : prev))
+    setPonto(null)
     setSelectedId(null)
     setModoDesenho(null)
     setOrigemSelecionada(null)
@@ -495,19 +531,24 @@ export default function EditorPage() {
   const podeRemover =
     setaSelecionadaNoBasquete || (selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete'))
   const simulacao = simular(cena)
-  const origemDaSeta = cena.pecas.find((peca) => peca.id === origemSelecionada)
+  const pecasVisiveis = pecasEmTela(cena)
+  const origemDaSeta = pecasVisiveis.find((peca) => peca.id === origemSelecionada)
   // Geometria de cada seta; a seta selecionada acompanha o cursor enquanto a ponta é arrastada.
   // No basquete a seta é recortada para não entrar nas peças de origem e de destino.
   const recuoSeta = (peca: Peca, folga: number) => (cena.quadra === 'basquete' ? RAIOS[peca.tipo] + folga : 0)
   const setasNaQuadra = cena.acoes.flatMap((acao) => {
-    const origem = cena.pecas.find((peca) => peca.id === acao.origem)
-    const pecaDestino = cena.pecas.find((peca) => peca.id === acao.destino)
+    const origem = pecasVisiveis.find((peca) => peca.id === acao.origem)
+    const pecaDestino = pecasVisiveis.find((peca) => peca.id === acao.destino)
     const destino = typeof acao.destino === 'string' ? pecaDestino : acao.destino
     if (!origem || !destino) return []
+    // A seta sai de onde a peça está quando a ação começa (posição calculada pela simulação).
+    const inicio = simulacao.inicios.get(acao.id) ?? origem
     const ponta = (acao.id === acaoSelecionadaId && arrastandoPonta && pontaSeta) || destino
     const recuoInicio = recuoSeta(origem, FOLGA_INICIO_SETA)
-    const recuoFim = pecaDestino && ponta === destino ? recuoSeta(pecaDestino, FOLGA_FIM_SETA) : 0
-    return [{ acao, ...recortarSeta(origem.x, origem.y, ponta.x, ponta.y, recuoInicio, recuoFim) }]
+    // No fim da jogada, a peça que se deslocou está parada na ponta da própria seta: a seta para antes dela.
+    const pecaNaPonta = pecaDestino ?? (origem.x === destino.x && origem.y === destino.y ? origem : undefined)
+    const recuoFim = pecaNaPonta && ponta === destino ? recuoSeta(pecaNaPonta, FOLGA_FIM_SETA) : 0
+    return [{ acao, ...recortarSeta(inicio.x, inicio.y, ponta.x, ponta.y, recuoInicio, recuoFim) }]
   })
   const previaSeta =
     origemDaSeta && pontaSeta
@@ -521,6 +562,13 @@ export default function EditorPage() {
         )
       : null
   const setaSelecionada = setasNaQuadra.find((seta) => seta.acao.id === acaoSelecionadaId)
+  // Setas de instantes que já aconteceram no ponto ficam esmaecidas.
+  const instanteDaAcao = new Map(
+    agruparPorInstante(cena.acoes).flatMap((grupo, instante) => grupo.map((acao) => [acao.id, instante] as const)),
+  )
+  const instanteDeReferencia = pontoDe(cena)
+  const jaAconteceu = (acao: Acao) =>
+    comPontos(cena) && (instanteDaAcao.get(acao.id) ?? 0) < instanteDeReferencia
 
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
@@ -596,6 +644,7 @@ export default function EditorPage() {
             ferramenta={setaSelecionada?.acao.tipo ?? modoDesenho}
             onFerramenta={escolherFerramenta}
             ferramentasBloqueadas={editandoId !== null}
+            pecasBloqueadas={pontoDe(cena) > 0}
           />
         )}
 
@@ -643,7 +692,7 @@ export default function EditorPage() {
                 }}
               />
             ))}
-          {cena.pecas.map((peca) => (
+          {pecasVisiveis.map((peca) => (
             <PecaSvg
               key={peca.id}
               peca={peca}
@@ -655,16 +704,17 @@ export default function EditorPage() {
           ))}
           <g pointerEvents="none">
           {setasNaQuadra.map(({ acao, x1, y1, x2, y2 }) => (
-            <AcaoSvg
-              key={acao.id}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              tipo={acao.tipo}
-              destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
-              preta={cena.quadra === 'basquete'}
-            />
+            <g key={acao.id} opacity={jaAconteceu(acao) ? 0.35 : 1}>
+              <AcaoSvg
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                tipo={acao.tipo}
+                destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
+                preta={cena.quadra === 'basquete'}
+              />
+            </g>
           ))}
           {modoDesenho && previaSeta && (
             <g opacity={0.6}>
@@ -706,6 +756,8 @@ export default function EditorPage() {
           onEditar={iniciarEdicaoAcao}
           onRemover={removerAcao}
           onSelecionar={alternarSelecaoAcao}
+          ponto={comPontos(cena) ? instanteDeReferencia : undefined}
+          onPonto={comPontos(cena) ? irParaPonto : undefined}
         />
         </div>
       </div>

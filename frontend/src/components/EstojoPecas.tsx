@@ -30,12 +30,14 @@ export default function EstojoPecas({
   ferramenta,
   onFerramenta,
   ferramentasBloqueadas,
+  pecasBloqueadas,
 }: {
   pecas: Peca[]
   onAlternar: (id: string, tipo: TipoPeca) => void
   ferramenta: TipoAcao | null
   onFerramenta: (tipo: TipoAcao) => void
   ferramentasBloqueadas: boolean
+  pecasBloqueadas: boolean
 }) {
   return (
     <div className="flex flex-wrap gap-x-6 gap-y-3 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-900/5">
@@ -50,11 +52,12 @@ export default function EstojoPecas({
                 <button
                   key={id}
                   type="button"
-                  draggable={!emQuadra}
+                  draggable={!emQuadra && !pecasBloqueadas}
+                  disabled={pecasBloqueadas}
                   onDragStart={(event) => event.dataTransfer.setData(TIPO_ARRASTE_PECA, JSON.stringify({ id, tipo: grupo.tipo }))}
                   onClick={() => onAlternar(id, grupo.tipo)}
                   title={emQuadra ? 'Em quadra: clique para devolver ao estojo' : 'Arraste para a quadra ou clique para colocar'}
-                  className="flex flex-col items-center gap-0.5"
+                  className="flex flex-col items-center gap-0.5 disabled:opacity-40"
                 >
                   <span
                     className={`flex items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-white shadow-card ${CORES[grupo.tipo]} ${
