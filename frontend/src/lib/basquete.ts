@@ -22,3 +22,23 @@ export function descreverPeca(id: string, quadra: Modalidade): string {
   const posicao = POSICOES_BASQUETE[Number(id.slice(1)) - 1]
   return quadra === 'basquete' && /^[AB][1-5]$/.test(id) ? `${id} · ${posicao}` : id
 }
+
+// Folga entre a seta e a borda da peça; no fim, desconta também a ponta da seta, que passa do fim da linha.
+export const FOLGA_INICIO_SETA = 3
+export const FOLGA_FIM_SETA = 7
+
+// Encurta a seta nas pontas para ela sair da borda da peça de origem e parar antes da borda
+// do destino, sem entrar nas peças. Setas curtas demais para o recorte ficam como estão.
+export function recortarSeta(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  recuoInicio: number,
+  recuoFim: number,
+) {
+  const comprimento = Math.hypot(x2 - x1, y2 - y1)
+  if (comprimento <= recuoInicio + recuoFim + 10) return { x1, y1, x2, y2 }
+  const [ux, uy] = [(x2 - x1) / comprimento, (y2 - y1) / comprimento]
+  return { x1: x1 + ux * recuoInicio, y1: y1 + uy * recuoInicio, x2: x2 - ux * recuoFim, y2: y2 - uy * recuoFim }
+}

@@ -5,16 +5,25 @@ import type { Play } from '../lib/api'
 import type { Cena } from '../types/cena'
 import { useAnimacao } from '../hooks/useAnimacao'
 import QuadraSvg from '../components/QuadraSvg'
-import PecaSvg from '../components/PecaSvg'
+import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import ControlesAnimacao from '../components/ControlesAnimacao'
-import { rotuloPeca } from '../lib/basquete'
+import { FOLGA_FIM_SETA, FOLGA_INICIO_SETA, recortarSeta, rotuloPeca } from '../lib/basquete'
 import BarraProgresso from '../components/BarraProgresso'
 
 function AnimacaoJogada({ cena }: { cena: Cena }) {
   const { pecas, passos, instanteAtual, tempo, duracao, tocando, tocar, pausar, reiniciar } = useAnimacao(cena)
   // O drible gera dois passos (jogador e bola), mas uma só seta; a bola é desenhada por cima de quem a conduz.
   const setas = passos.filter((passo, index) => passos.findIndex((outro) => outro.acao.id === passo.acao.id) === index)
+  // No basquete a seta sai da borda de quem executa e para antes da borda da peça de destino.
+  const recuo = (id: string, folga: number) => {
+    const peca = cena.pecas.find((p) => p.id === id)
+    return peca && cena.quadra === 'basquete' ? RAIOS[peca.tipo] + folga : 0
+  }
+  const coordenadas = ({ acao, de, para }: (typeof passos)[number]) => {
+    const recuoFim = typeof acao.destino === 'string' ? recuo(acao.destino, FOLGA_FIM_SETA) : 0
+    return recortarSeta(de.x, de.y, para.x, para.y, recuo(acao.origem, FOLGA_INICIO_SETA), recuoFim)
+  }
   const pecasEmOrdem = [...pecas].sort((a, b) => Number(a.tipo === 'bola') - Number(b.tipo === 'bola'))
 
   return (
@@ -24,10 +33,7 @@ function AnimacaoJogada({ cena }: { cena: Cena }) {
         {setas.map((passo) => (
           <g key={passo.acao.id} opacity={passo.instante === instanteAtual ? 1 : 0.35}>
             <AcaoSvg
-              x1={passo.de.x}
-              y1={passo.de.y}
-              x2={passo.para.x}
-              y2={passo.para.y}
+              {...coordenadas(passo)}
               tipo={passo.acao.tipo}
               destacada={passo.instante === instanteAtual}
             />

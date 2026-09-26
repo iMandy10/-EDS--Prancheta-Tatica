@@ -12,7 +12,14 @@ import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 import { cabeNoInstante, compactarOrdens } from '../lib/instantes'
-import { POSICAO_PADRAO_BASQUETE, TIPO_ARRASTE_PECA, rotuloPeca } from '../lib/basquete'
+import {
+  FOLGA_FIM_SETA,
+  FOLGA_INICIO_SETA,
+  POSICAO_PADRAO_BASQUETE,
+  TIPO_ARRASTE_PECA,
+  recortarSeta,
+  rotuloPeca,
+} from '../lib/basquete'
 
 const PECAS_INICIAIS: Peca[] = [
   { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
@@ -472,14 +479,29 @@ export default function EditorPage() {
     setaSelecionadaNoBasquete || (selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete'))
   const origemDaSeta = cena.pecas.find((peca) => peca.id === origemSelecionada)
   // Geometria de cada seta; a seta selecionada acompanha o cursor enquanto a ponta é arrastada.
+  // No basquete a seta é recortada para não entrar nas peças de origem e de destino.
+  const recuoSeta = (peca: Peca, folga: number) => (cena.quadra === 'basquete' ? RAIOS[peca.tipo] + folga : 0)
   const setasNaQuadra = cena.acoes.flatMap((acao) => {
     const origem = cena.pecas.find((peca) => peca.id === acao.origem)
-    const destino =
-      typeof acao.destino === 'string' ? cena.pecas.find((peca) => peca.id === acao.destino) : acao.destino
+    const pecaDestino = cena.pecas.find((peca) => peca.id === acao.destino)
+    const destino = typeof acao.destino === 'string' ? pecaDestino : acao.destino
     if (!origem || !destino) return []
-    const ponta = acao.id === acaoSelecionadaId && arrastandoPonta && pontaSeta ? pontaSeta : destino
-    return [{ acao, x1: origem.x, y1: origem.y, x2: ponta.x, y2: ponta.y }]
+    const ponta = (acao.id === acaoSelecionadaId && arrastandoPonta && pontaSeta) || destino
+    const recuoInicio = recuoSeta(origem, FOLGA_INICIO_SETA)
+    const recuoFim = pecaDestino && ponta === destino ? recuoSeta(pecaDestino, FOLGA_FIM_SETA) : 0
+    return [{ acao, ...recortarSeta(origem.x, origem.y, ponta.x, ponta.y, recuoInicio, recuoFim) }]
   })
+  const previaSeta =
+    origemDaSeta && pontaSeta
+      ? recortarSeta(
+          origemDaSeta.x,
+          origemDaSeta.y,
+          pontaSeta.x,
+          pontaSeta.y,
+          recuoSeta(origemDaSeta, FOLGA_INICIO_SETA),
+          0,
+        )
+      : null
   const setaSelecionada = setasNaQuadra.find((seta) => seta.acao.id === acaoSelecionadaId)
 
   return (
@@ -621,15 +643,9 @@ export default function EditorPage() {
               destacada={acao.id === acaoSelecionadaId || acao.id === editandoId}
             />
           ))}
-          {modoDesenho && pontaSeta && origemDaSeta && (
+          {modoDesenho && previaSeta && (
             <g opacity={0.6}>
-              <AcaoSvg
-                x1={origemDaSeta.x}
-                y1={origemDaSeta.y}
-                x2={pontaSeta.x}
-                y2={pontaSeta.y}
-                tipo={modoDesenho}
-              />
+              <AcaoSvg {...previaSeta} tipo={modoDesenho} />
             </g>
           )}
           </g>
