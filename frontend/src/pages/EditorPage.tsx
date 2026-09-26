@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
@@ -39,6 +39,8 @@ function paraCoordenadasSvg(svg: SVGSVGElement, clientX: number, clientY: number
 export default function EditorPage() {
   const { chave, team, notFound } = useTeamSession()
   const navigate = useNavigate()
+  const location = useLocation()
+  const cenaInicial = (location.state as { cenaInicial?: Cena } | null)?.cenaInicial
   const [cena, setCena] = useState<Cena | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -53,9 +55,9 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (team && !cena) {
-      setCena({ quadra: team.modalidade, pecas: PECAS_INICIAIS, acoes: [] })
+      setCena(cenaInicial ?? { quadra: team.modalidade, pecas: PECAS_INICIAIS, acoes: [] })
     }
-  }, [team, cena])
+  }, [team, cena, cenaInicial])
 
   function alternarModoDesenho(tipo: TipoAcao) {
     return () => {

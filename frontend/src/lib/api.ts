@@ -93,6 +93,18 @@ export async function getPlays(teamId: number, chaveTreinador: string): Promise<
   return response.json()
 }
 
+export async function getPlay(playId: number, chaveTreinador: string): Promise<Play> {
+  const response = await fetch(`${API_URL}/plays/${playId}`, {
+    headers: { 'X-Chave-Treinador': chaveTreinador },
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar a jogada.')
+  }
+
+  return response.json()
+}
+
 export async function updatePlay(
   playId: number,
   chaveTreinador: string,

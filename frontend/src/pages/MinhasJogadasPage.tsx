@@ -4,7 +4,7 @@ import { useTeamSession } from '../hooks/useTeamSession'
 import { useJogadas } from '../hooks/useJogadas'
 import EditarJogadaModal from '../components/EditarJogadaModal'
 import JogadaCard from '../components/JogadaCard'
-import { updatePlay, type PlaySummary } from '../lib/api'
+import { getPlay, updatePlay, type PlaySummary } from '../lib/api'
 
 export default function MinhasJogadasPage() {
   const { chave, team, notFound } = useTeamSession()
@@ -13,6 +13,7 @@ export default function MinhasJogadasPage() {
   const [editando, setEditando] = useState<PlaySummary | null>(null)
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
+  const [erroReabrir, setErroReabrir] = useState<string | null>(null)
 
   if (!chave || notFound) {
     return <Navigate to="/" replace />
@@ -41,6 +42,17 @@ export default function MinhasJogadasPage() {
     }
   }
 
+  async function handleReabrir(jogada: PlaySummary) {
+    if (!chave) return
+    setErroReabrir(null)
+    try {
+      const play = await getPlay(jogada.id, chave)
+      navigate('/times/quadra', { state: { cenaInicial: play.cena_json } })
+    } catch {
+      setErroReabrir('Não foi possível reabrir a jogada. Tente novamente.')
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
@@ -55,6 +67,7 @@ export default function MinhasJogadasPage() {
       </div>
 
       {erroLista && <p className="text-sm text-red-600">{erroLista}</p>}
+      {erroReabrir && <p className="text-sm text-red-600">{erroReabrir}</p>}
 
       {jogadas === null ? (
         <p className="text-gray-500">Carregando...</p>
@@ -69,6 +82,7 @@ export default function MinhasJogadasPage() {
               onEditar={setEditando}
               onAlternarStatus={alternarStatus}
               onExcluir={excluir}
+              onReabrir={handleReabrir}
             />
           ))}
         </ul>
