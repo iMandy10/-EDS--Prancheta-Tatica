@@ -12,11 +12,14 @@ import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 import { cabeNoInstante, compactarOrdens } from '../lib/instantes'
+import { portadorAoFinal } from '../lib/animacao'
 import {
   FOLGA_FIM_SETA,
   FOLGA_INICIO_SETA,
   POSICAO_PADRAO_BASQUETE,
   TIPO_ARRASTE_PECA,
+  acompanharPosse,
+  atribuirPosse,
   recortarSeta,
   rotuloPeca,
 } from '../lib/basquete'
@@ -84,6 +87,7 @@ export default function EditorPage() {
   const [acaoSelecionadaId, setAcaoSelecionadaId] = useState<string | null>(null)
   const [pontaSeta, setPontaSeta] = useState<{ x: number; y: number } | null>(null)
   const [arrastandoPonta, setArrastandoPonta] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [modalSalvarAberto, setModalSalvarAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
@@ -104,6 +108,7 @@ export default function EditorPage() {
         setEditandoId(null)
         setPontaSeta(null)
         setAcaoSelecionadaId(null)
+        setAviso(null)
         return
       }
       // Delete/Backspace removem a seta selecionada no basquete, exceto enquanto se digita num campo.
@@ -125,6 +130,7 @@ export default function EditorPage() {
     return () => {
       setModoDesenho((atual) => (atual === tipo ? null : tipo))
       setOrigemSelecionada(null)
+      setAviso(null)
       setEditandoId(null)
     }
   }
@@ -243,14 +249,17 @@ export default function EditorPage() {
 
       if (modoDesenho && cena?.quadra === 'basquete') {
         // No basquete a seta é desenhada arrastando: começa aqui e termina no pointerup da quadra.
-        // Se a bola está sobre um jogador, a seta sai do jogador que a conduz.
+        // Se a bola está com um jogador, a seta sai de quem tem a posse.
         const bola = cena.pecas.find((peca) => peca.id === id && peca.tipo === 'bola')
-        const condutor =
-          bola &&
-          cena.pecas.find(
-            (peca) => peca.tipo !== 'bola' && Math.hypot(peca.x - bola.x, peca.y - bola.y) <= RAIOS[peca.tipo],
-          )
-        setOrigemSelecionada(condutor ? condutor.id : id)
+        const origem = bola?.posse ?? id
+        // Só quem está com a bola (depois das ações já desenhadas) pode passar ou driblar.
+        const levaBola = modoDesenho === 'passe' || modoDesenho === 'drible'
+        if (levaBola && !editandoId && origem !== portadorAoFinal(cena)) {
+          setAviso('Só quem está com a bola pode passar ou driblar.')
+          return
+        }
+        setAviso(null)
+        setOrigemSelecionada(origem)
         setPontaSeta(null)
         return
       }
@@ -296,18 +305,18 @@ export default function EditorPage() {
 
     setCena((prev) => {
       if (!prev) return prev
-      return {
-        ...prev,
-        pecas: prev.pecas.map((peca) => {
-          if (peca.id !== draggingId) return peca
-          const raio = RAIOS[peca.tipo]
-          return {
-            ...peca,
-            x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
-            y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
-          }
-        }),
-      }
+      const pecas = prev.pecas.map((peca) => {
+        if (peca.id !== draggingId) return peca
+        const raio = RAIOS[peca.tipo]
+        return {
+          ...peca,
+          x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
+          y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
+        }
+      })
+      // Quem tem a posse leva a bola junto; a própria bola, enquanto é arrastada, fica onde o cursor está.
+      const arrastandoBola = pecas.some((peca) => peca.id === draggingId && peca.tipo === 'bola')
+      return { ...prev, pecas: prev.quadra === 'basquete' && !arrastandoBola ? acompanharPosse(pecas) : pecas }
     })
   }
 
@@ -330,6 +339,12 @@ export default function EditorPage() {
   function handleSvgPointerUp(event: PointerEvent<SVGSVGElement>) {
     setDraggingId(null)
     if (!cena || cena.quadra !== 'basquete') return
+
+    // Ao soltar a bola: fica com o jogador em cuja área ela caiu (transferindo a posse) ou solta.
+    if (cena.pecas.some((peca) => peca.id === draggingId && peca.tipo === 'bola')) {
+      setCena((prev) => prev && { ...prev, pecas: atribuirPosse(prev.pecas) })
+      return
+    }
 
     const selecionada = cena.acoes.find((acao) => acao.id === acaoSelecionadaId)
     if (arrastandoPonta && selecionada) {
@@ -397,7 +412,7 @@ export default function EditorPage() {
       if (!prev) return prev
       return {
         ...prev,
-        pecas: prev.pecas.filter((peca) => peca.id !== id),
+        pecas: acompanharPosse(prev.pecas.filter((peca) => peca.id !== id)),
         acoes: compactarOrdens(prev.acoes.filter((acao) => acao.origem !== id && acao.destino !== id)),
       }
     })
@@ -433,7 +448,9 @@ export default function EditorPage() {
         x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
         y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
       }
-      return { ...prev, pecas: [...prev.pecas, peca] }
+      const pecas = [...prev.pecas, peca]
+      // No basquete, a bola colocada na área de um jogador já entra com ele.
+      return { ...prev, pecas: prev.quadra === 'basquete' && tipo === 'bola' ? atribuirPosse(pecas) : pecas }
     })
   }
 
@@ -579,6 +596,10 @@ export default function EditorPage() {
             onFerramenta={escolherFerramenta}
             ferramentasBloqueadas={editandoId !== null}
           />
+        )}
+
+        {aviso && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{aviso}</div>
         )}
 
         {modoDesenho && (
