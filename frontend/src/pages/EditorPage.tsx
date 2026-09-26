@@ -10,6 +10,7 @@ import Button from '../components/Button'
 import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
+import { cabeNoInstante, compactarOrdens } from '../lib/instantes'
 
 const PECAS_INICIAIS: Peca[] = [
   { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
@@ -26,6 +27,19 @@ const MAX_JOGADORES: Record<Modalidade, number> = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
+}
+
+// Tira a ação do instante em que está e a coloca num instante próprio logo em seguida.
+function separarAcao(acoes: Acao[], id: string): Acao[] {
+  const alvo = acoes.find((acao) => acao.id === id)
+  if (!alvo) return acoes
+  return compactarOrdens(
+    acoes.map((acao) => {
+      if (acao.id === id) return { ...acao, ordem: alvo.ordem + 1 }
+      if (acao.ordem > alvo.ordem) return { ...acao, ordem: acao.ordem + 1 }
+      return acao
+    }),
+  )
 }
 
 function paraCoordenadasSvg(svg: SVGSVGElement, clientX: number, clientY: number) {
@@ -85,15 +99,16 @@ export default function EditorPage() {
       if (!prev) return prev
 
       if (editandoId) {
-        return {
-          ...prev,
-          acoes: prev.acoes.map((acao) =>
-            acao.id === editandoId ? { ...acao, origem: origemSelecionada, destino } : acao,
-          ),
-        }
+        const acoes = prev.acoes.map((acao) =>
+          acao.id === editandoId ? { ...acao, origem: origemSelecionada, destino } : acao,
+        )
+        const editada = acoes.find((acao) => acao.id === editandoId)
+        const grupo = acoes.filter((acao) => acao.ordem === editada?.ordem)
+        const cabe = editada && cabeNoInstante(editada, grupo, prev.pecas)
+        return { ...prev, acoes: cabe ? acoes : separarAcao(acoes, editandoId) }
       }
 
-      const ordem = prev.acoes.length + 1
+      const ordem = Math.max(0, ...prev.acoes.map((acao) => acao.ordem)) + 1
       const numero = Math.max(0, ...prev.acoes.map((acao) => Number(acao.id.slice(1)) || 0)) + 1
       const novaAcao: Acao = {
         id: `a${numero}`,
@@ -115,8 +130,7 @@ export default function EditorPage() {
   function removerAcao(id: string) {
     setCena((prev) => {
       if (!prev) return prev
-      const restantes = [...prev.acoes].filter((acao) => acao.id !== id).sort((a, b) => a.ordem - b.ordem)
-      return { ...prev, acoes: restantes.map((acao, index) => ({ ...acao, ordem: index + 1 })) }
+      return { ...prev, acoes: compactarOrdens(prev.acoes.filter((acao) => acao.id !== id)) }
     })
     if (editandoId === id) {
       setEditandoId(null)
