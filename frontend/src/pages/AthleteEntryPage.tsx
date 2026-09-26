@@ -1,13 +1,41 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChaveInvalidaError, getTeamByChaveAtleta } from '../lib/athleteApi'
+import { clearChaveAtleta, getChaveAtleta, setChaveAtleta } from '../lib/athleteStorage'
 import Button from '../components/Button'
+
+const ERRO_SERVIDOR = 'Não foi possível validar a chave. Verifique se o servidor está rodando e tente novamente.'
 
 export default function AthleteEntryPage() {
   const navigate = useNavigate()
   const [chaveInput, setChaveInput] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(() => getChaveAtleta() !== null)
+
+  useEffect(() => {
+    const chaveSalva = getChaveAtleta()
+    if (!chaveSalva) return
+
+    let active = true
+    getTeamByChaveAtleta(chaveSalva)
+      .then((team) => {
+        if (active) navigate('/atleta/jogadas', { replace: true, state: { team, chave: chaveSalva } })
+      })
+      .catch((err) => {
+        if (!active) return
+        if (err instanceof ChaveInvalidaError) {
+          clearChaveAtleta()
+        } else {
+          setChaveInput(chaveSalva)
+          setError(ERRO_SERVIDOR)
+        }
+        setChecking(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [navigate])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -22,16 +50,23 @@ export default function AthleteEntryPage() {
     setLoading(true)
     try {
       const team = await getTeamByChaveAtleta(chave)
+      setChaveAtleta(chave)
       navigate('/atleta/jogadas', { state: { team, chave } })
     } catch (err) {
       setError(
         err instanceof ChaveInvalidaError
           ? 'Chave inválida. Confira com seu treinador e tente novamente.'
-          : 'Não foi possível validar a chave. Verifique se o servidor está rodando e tente novamente.',
+          : ERRO_SERVIDOR,
       )
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">Carregando...</div>
+    )
   }
 
   return (
