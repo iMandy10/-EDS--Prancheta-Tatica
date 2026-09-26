@@ -17,7 +17,7 @@ class PontoDestino(BaseModel):
 
 class Acao(BaseModel):
     id: str
-    tipo: Literal["movimentacao", "passe"]
+    tipo: Literal["movimentacao", "passe", "bloqueio", "drible"]
     origem: str
     destino: str | PontoDestino
     ordem: int
@@ -39,7 +39,8 @@ class Cena(BaseModel):
                 raise ValueError(f"acao '{acao.id}': destino '{acao.destino}' não corresponde a nenhuma peca da cena")
 
         # Ações com a mesma ordem acontecem no mesmo instante: cada peça faz no
-        # máximo uma ação por instante, e só uma ação por instante move a bola.
+        # máximo uma ação por instante, e só uma ação por instante move a bola
+        # (passe, drible ou movimentação da própria bola).
         origens_por_ordem: dict[int, set[str]] = {}
         ordens_com_bola: set[int] = set()
         for acao in self.acoes:
@@ -48,7 +49,7 @@ class Cena(BaseModel):
                 raise ValueError(f"peca '{acao.origem}' tem mais de uma acao na ordem {acao.ordem}")
             origens.add(acao.origem)
 
-            if acao.tipo == "passe" or acao.origem in ids_bola:
+            if acao.tipo in ("passe", "drible") or acao.origem in ids_bola:
                 if acao.ordem in ordens_com_bola:
                     raise ValueError(f"a bola tem mais de uma acao na ordem {acao.ordem}")
                 ordens_com_bola.add(acao.ordem)
