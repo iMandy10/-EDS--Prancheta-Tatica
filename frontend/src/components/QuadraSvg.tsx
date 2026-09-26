@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Modalidade } from '../lib/api'
 
 const WIDTH = 800
@@ -32,7 +33,7 @@ function BasqueteMarkings() {
   )
 }
 
-export default function QuadraSvg({ quadra }: { quadra: Modalidade }) {
+export default function QuadraSvg({ quadra, children }: { quadra: Modalidade; children?: ReactNode }) {
   const backgroundColor = quadra === 'futebol' ? '#2e7d32' : '#c98a4b'
 
   return (
@@ -44,6 +45,7 @@ export default function QuadraSvg({ quadra }: { quadra: Modalidade }) {
     >
       <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill={backgroundColor} />
       {quadra === 'futebol' ? <FutebolMarkings /> : <BasqueteMarkings />}
+      {children}
     </svg>
   )
 }
