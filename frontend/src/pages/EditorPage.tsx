@@ -277,10 +277,22 @@ export default function EditorPage() {
     }
   }
 
+  // Remove a peça e as setas ligadas a ela, que ficariam sem origem ou destino.
+  function removerPeca(id: string) {
+    setCena((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        pecas: prev.pecas.filter((peca) => peca.id !== id),
+        acoes: compactarOrdens(prev.acoes.filter((acao) => acao.origem !== id && acao.destino !== id)),
+      }
+    })
+    if (selectedId === id) setSelectedId(null)
+    if (origemSelecionada === id) setOrigemSelecionada(null)
+  }
+
   function handleRemoverSelecionado() {
-    if (!selectedId) return
-    setCena((prev) => (prev ? { ...prev, pecas: prev.pecas.filter((peca) => peca.id !== selectedId) } : prev))
-    setSelectedId(null)
+    if (selectedId) removerPeca(selectedId)
   }
 
   if (!chave || notFound) {
