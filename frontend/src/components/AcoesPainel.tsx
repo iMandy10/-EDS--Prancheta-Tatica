@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { ChevronDownIcon, ChevronUpIcon, LinkIcon, PencilIcon, TrashIcon, UnlinkIcon } from './icons'
 import { agruparPorInstante, cabeNoInstante } from '../lib/instantes'
-import { descreverPeca, jogadorNaArea } from '../lib/basquete'
+import { descreverPeca } from '../lib/basquete'
 import type { Modalidade } from '../lib/api'
 import type { Acao, Peca } from '../types/cena'
 
@@ -19,10 +19,11 @@ const COR_TIPO: Record<Acao['tipo'], string> = {
   drible: 'bg-sky-500',
 }
 
-function descreverDestino(acao: Acao, pecas: Peca[], quadra: Modalidade) {
+// Destino livre é descrito pelo jogador que o motor identificou na área da ponta, no momento da ação.
+function descreverDestino(acao: Acao, alvos: Map<string, string>, quadra: Modalidade) {
   if (typeof acao.destino === 'string') return descreverPeca(acao.destino, quadra)
-  const jogador = quadra === 'basquete' ? jogadorNaArea(acao.destino, pecas, acao.origem) : undefined
-  return jogador ? descreverPeca(jogador.id, quadra) : 'ponto livre'
+  const jogador = alvos.get(acao.id)
+  return jogador ? descreverPeca(jogador, quadra) : 'ponto livre'
 }
 
 function BotaoIcone({
@@ -59,6 +60,7 @@ export default function AcoesPainel({
   acoes,
   pecas,
   quadra,
+  alvos,
   editandoId,
   selecionadaId,
   onMoverInstante,
@@ -71,6 +73,7 @@ export default function AcoesPainel({
   acoes: Acao[]
   pecas: Peca[]
   quadra: Modalidade
+  alvos: Map<string, string>
   editandoId: string | null
   selecionadaId: string | null
   onMoverInstante: (ordem: number, direcao: -1 | 1) => void
@@ -125,7 +128,7 @@ export default function AcoesPainel({
                           className={`h-2 w-2 shrink-0 rounded-full ${quadra === 'basquete' ? 'bg-gray-900' : COR_TIPO[acao.tipo]}`}
                         />
                         <span className="text-slate-700">
-                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao, pecas, quadra)}
+                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao, alvos, quadra)}
                           {editandoId === acao.id && (
                             <span className="ml-1 text-xs font-medium text-amber-600">(editando)</span>
                           )}

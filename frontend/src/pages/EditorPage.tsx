@@ -12,7 +12,7 @@ import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 import { cabeNoInstante, compactarOrdens } from '../lib/instantes'
-import { portadorAoFinal } from '../lib/animacao'
+import { portadorAoFinal, simular } from '../lib/animacao'
 import {
   FOLGA_FIM_SETA,
   FOLGA_INICIO_SETA,
@@ -494,6 +494,7 @@ export default function EditorPage() {
   const setaSelecionadaNoBasquete = cena.quadra === 'basquete' && acaoSelecionadaId !== null
   const podeRemover =
     setaSelecionadaNoBasquete || (selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete'))
+  const simulacao = simular(cena)
   const origemDaSeta = cena.pecas.find((peca) => peca.id === origemSelecionada)
   // Geometria de cada seta; a seta selecionada acompanha o cursor enquanto a ponta é arrastada.
   // No basquete a seta é recortada para não entrar nas peças de origem e de destino.
@@ -696,6 +697,7 @@ export default function EditorPage() {
           acoes={cena.acoes}
           pecas={cena.pecas}
           quadra={cena.quadra}
+          alvos={simulacao.alvos}
           editandoId={editandoId}
           selecionadaId={acaoSelecionadaId}
           onMoverInstante={moverInstante}
