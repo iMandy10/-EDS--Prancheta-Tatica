@@ -6,6 +6,24 @@ const HEIGHT = 500
 
 export const QUADRA_LIMITES = { minX: 20, minY: 20, maxX: 780, maxY: 480 }
 
+function GramaListrada() {
+  const faixas = Array.from({ length: 8 }, (_, index) => index)
+  return (
+    <>
+      {faixas.map((index) => (
+        <rect
+          key={index}
+          x={index * 100}
+          y={0}
+          width={100}
+          height={HEIGHT}
+          fill={index % 2 === 0 ? '#2f8f3d' : '#2a7f37'}
+        />
+      ))}
+    </>
+  )
+}
+
 function FutebolMarkings() {
   return (
     <>
@@ -48,12 +66,10 @@ export default function QuadraSvg({
   onPointerMove?: (event: PointerEvent<SVGSVGElement>) => void
   onPointerUp?: (event: PointerEvent<SVGSVGElement>) => void
 }) {
-  const backgroundColor = quadra === 'futebol' ? '#2e7d32' : '#c98a4b'
-
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="w-full max-w-3xl rounded-md"
+      className="w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10"
       role="img"
       aria-label={`Quadra de ${quadra}`}
       onPointerDown={onPointerDown}
@@ -61,7 +77,17 @@ export default function QuadraSvg({
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill={backgroundColor} />
+      <defs>
+        <linearGradient id="madeira-quadra" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#d3985f" />
+          <stop offset="100%" stopColor="#b97e46" />
+        </linearGradient>
+      </defs>
+      {quadra === 'futebol' ? (
+        <GramaListrada />
+      ) : (
+        <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="url(#madeira-quadra)" />
+      )}
       {quadra === 'futebol' ? <FutebolMarkings /> : <BasqueteMarkings />}
       {children}
     </svg>

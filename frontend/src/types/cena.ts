@@ -9,7 +9,23 @@ export interface Peca {
   y: number
 }
 
+export type TipoAcao = 'movimentacao' | 'passe'
+
+export interface PontoDestino {
+  x: number
+  y: number
+}
+
+export interface Acao {
+  id: string
+  tipo: TipoAcao
+  origem: string
+  destino: string | PontoDestino
+  ordem: number
+}
+
 export interface Cena {
   quadra: Modalidade
   pecas: Peca[]
+  acoes: Acao[]
 }

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class Peca(BaseModel):
@@ -10,6 +10,35 @@ class Peca(BaseModel):
     y: float
 
 
+class PontoDestino(BaseModel):
+    x: float
+    y: float
+
+
+class Acao(BaseModel):
+    id: str
+    tipo: Literal["movimentacao", "passe"]
+    origem: str
+    destino: str | PontoDestino
+    ordem: int
+
+
 class Cena(BaseModel):
     quadra: Literal["futebol", "basquete"]
     pecas: list[Peca]
+    acoes: list[Acao] = []
+
+    @model_validator(mode="after")
+    def validar_acoes(self) -> "Cena":
+        ordens = [acao.ordem for acao in self.acoes]
+        if len(ordens) != len(set(ordens)):
+            raise ValueError("acoes não podem ter ordens duplicadas")
+
+        ids_pecas = {peca.id for peca in self.pecas}
+        for acao in self.acoes:
+            if acao.origem not in ids_pecas:
+                raise ValueError(f"acao '{acao.id}': origem '{acao.origem}' não corresponde a nenhuma peca da cena")
+            if isinstance(acao.destino, str) and acao.destino not in ids_pecas:
+                raise ValueError(f"acao '{acao.id}': destino '{acao.destino}' não corresponde a nenhuma peca da cena")
+
+        return self
