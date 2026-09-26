@@ -8,6 +8,7 @@ import QuadraSvg from '../components/QuadraSvg'
 import PecaSvg from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import ControlesAnimacao from '../components/ControlesAnimacao'
+import { rotuloPeca } from '../lib/basquete'
 import BarraProgresso from '../components/BarraProgresso'
 
 function AnimacaoJogada({ cena }: { cena: Cena }) {
@@ -30,7 +31,7 @@ function AnimacaoJogada({ cena }: { cena: Cena }) {
           </g>
         ))}
         {pecas.map((peca) => (
-          <PecaSvg key={peca.id} peca={peca} />
+          <PecaSvg key={peca.id} peca={peca} rotulo={rotuloPeca(peca, cena.quadra)} />
         ))}
       </QuadraSvg>
       <BarraProgresso progresso={duracao > 0 ? tempo / duracao : 0} />

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { ChevronDownIcon, ChevronUpIcon, LinkIcon, PencilIcon, TrashIcon, UnlinkIcon } from './icons'
 import { agruparPorInstante, cabeNoInstante } from '../lib/instantes'
+import { descreverPeca } from '../lib/basquete'
+import type { Modalidade } from '../lib/api'
 import type { Acao, Peca } from '../types/cena'
 
 const ROTULO_TIPO: Record<Acao['tipo'], string> = {
@@ -13,8 +15,8 @@ const COR_TIPO: Record<Acao['tipo'], string> = {
   passe: 'bg-violet-500',
 }
 
-function descreverDestino(destino: Acao['destino']) {
-  return typeof destino === 'string' ? destino : 'ponto livre'
+function descreverDestino(destino: Acao['destino'], quadra: Modalidade) {
+  return typeof destino === 'string' ? descreverPeca(destino, quadra) : 'ponto livre'
 }
 
 function BotaoIcone({
@@ -50,6 +52,7 @@ function BotaoIcone({
 export default function AcoesPainel({
   acoes,
   pecas,
+  quadra,
   editandoId,
   selecionadaId,
   onMoverInstante,
@@ -61,6 +64,7 @@ export default function AcoesPainel({
 }: {
   acoes: Acao[]
   pecas: Peca[]
+  quadra: Modalidade
   editandoId: string | null
   selecionadaId: string | null
   onMoverInstante: (ordem: number, direcao: -1 | 1) => void
@@ -113,7 +117,7 @@ export default function AcoesPainel({
                       <span className="flex items-center gap-2">
                         <span className={`h-2 w-2 shrink-0 rounded-full ${COR_TIPO[acao.tipo]}`} />
                         <span className="text-slate-700">
-                          {ROTULO_TIPO[acao.tipo]} de {acao.origem} para {descreverDestino(acao.destino)}
+                          {ROTULO_TIPO[acao.tipo]} de {descreverPeca(acao.origem, quadra)} para {descreverDestino(acao.destino, quadra)}
                           {editandoId === acao.id && (
                             <span className="ml-1 text-xs font-medium text-amber-600">(editando)</span>
                           )}

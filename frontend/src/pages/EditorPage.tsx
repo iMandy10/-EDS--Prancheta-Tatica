@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
 import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import AcoesPainel from '../components/AcoesPainel'
+import EstojoPecas from '../components/EstojoPecas'
 import SalvarJogadaModal from '../components/SalvarJogadaModal'
 import Button from '../components/Button'
 import { FolderOpenIcon, PlusIcon, TrashIcon } from '../components/icons'
 import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
 import { createPlay, type Modalidade, type StatusJogada } from '../lib/api'
 import { cabeNoInstante, compactarOrdens } from '../lib/instantes'
+import { POSICAO_PADRAO_BASQUETE, TIPO_ARRASTE_PECA, rotuloPeca } from '../lib/basquete'
 
 const PECAS_INICIAIS: Peca[] = [
   { id: 'A1', tipo: 'jogador_time_a', x: 250, y: 150 },
@@ -71,7 +73,8 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (team && !cena) {
-      setCena(cenaInicial ?? { quadra: team.modalidade, pecas: PECAS_INICIAIS, acoes: [] })
+      const pecas = team.modalidade === 'basquete' ? [] : PECAS_INICIAIS
+      setCena(cenaInicial ?? { quadra: team.modalidade, pecas, acoes: [] })
     }
   }, [team, cena, cenaInicial])
 
@@ -295,6 +298,38 @@ export default function EditorPage() {
     if (selectedId) removerPeca(selectedId)
   }
 
+  function colocarPeca(id: string, tipo: TipoPeca, x: number, y: number) {
+    const raio = RAIOS[tipo]
+    setCena((prev) => {
+      if (!prev || prev.pecas.some((peca) => peca.id === id)) return prev
+      const peca: Peca = {
+        id,
+        tipo,
+        x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
+        y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
+      }
+      return { ...prev, pecas: [...prev.pecas, peca] }
+    })
+  }
+
+  function alternarPecaDoEstojo(id: string, tipo: TipoPeca) {
+    if (cena?.pecas.some((peca) => peca.id === id)) {
+      removerPeca(id)
+    } else {
+      colocarPeca(id, tipo, POSICAO_PADRAO_BASQUETE[id].x, POSICAO_PADRAO_BASQUETE[id].y)
+    }
+  }
+
+  function handleSoltarNaQuadra(event: DragEvent<HTMLDivElement>) {
+    const dados = event.dataTransfer.getData(TIPO_ARRASTE_PECA)
+    const svg = event.currentTarget.querySelector('svg')
+    if (!dados || !svg) return
+    event.preventDefault()
+    const { id, tipo } = JSON.parse(dados) as { id: string; tipo: TipoPeca }
+    const { x, y } = paraCoordenadasSvg(svg, event.clientX, event.clientY)
+    colocarPeca(id, tipo, x, y)
+  }
+
   if (!chave || notFound) {
     return <Navigate to="/" replace />
   }
@@ -314,7 +349,7 @@ export default function EditorPage() {
   }
   const max = MAX_JOGADORES[cena.quadra]
   const selecionada = cena.pecas.find((peca) => peca.id === selectedId)
-  const podeRemover = selecionada && selecionada.tipo !== 'bola'
+  const podeRemover = selecionada && (selecionada.tipo !== 'bola' || cena.quadra === 'basquete')
 
   return (
     <div className="min-h-screen bg-slate-50 pb-10">
@@ -334,14 +369,18 @@ export default function EditorPage() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 pt-6">
         <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={handleAdicionarJogador('jogador_time_a')} disabled={contagem.jogador_time_a >= max} variant="outline">
-              <PlusIcon className="h-4 w-4 text-blue-600" />
-              Time A ({contagem.jogador_time_a}/{max})
-            </Button>
-            <Button onClick={handleAdicionarJogador('jogador_time_b')} disabled={contagem.jogador_time_b >= max} variant="outline">
-              <PlusIcon className="h-4 w-4 text-red-600" />
-              Time B ({contagem.jogador_time_b}/{max})
-            </Button>
+            {cena.quadra === 'futebol' && (
+              <>
+                <Button onClick={handleAdicionarJogador('jogador_time_a')} disabled={contagem.jogador_time_a >= max} variant="outline">
+                  <PlusIcon className="h-4 w-4 text-blue-600" />
+                  Time A ({contagem.jogador_time_a}/{max})
+                </Button>
+                <Button onClick={handleAdicionarJogador('jogador_time_b')} disabled={contagem.jogador_time_b >= max} variant="outline">
+                  <PlusIcon className="h-4 w-4 text-red-600" />
+                  Time B ({contagem.jogador_time_b}/{max})
+                </Button>
+              </>
+            )}
             <Button onClick={handleRemoverSelecionado} disabled={!podeRemover} variant="danger">
               <TrashIcon className="h-4 w-4" />
               Remover
@@ -370,6 +409,8 @@ export default function EditorPage() {
           </Button>
         </div>
 
+        {cena.quadra === 'basquete' && <EstojoPecas pecas={cena.pecas} onAlternar={alternarPecaDoEstojo} />}
+
         {modoDesenho && (
           <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">
             {editandoId ? <strong>Editando seta — </strong> : null}
@@ -382,6 +423,7 @@ export default function EditorPage() {
         )}
 
         <div className="flex w-full flex-col items-start gap-6 lg:flex-row lg:justify-center">
+        <div className="w-full max-w-3xl" onDragOver={(event) => event.preventDefault()} onDrop={handleSoltarNaQuadra}>
         <QuadraSvg
           quadra={cena.quadra}
           onPointerDown={handleSvgPointerDown}
@@ -393,6 +435,7 @@ export default function EditorPage() {
             <PecaSvg
               key={peca.id}
               peca={peca}
+              rotulo={rotuloPeca(peca, cena.quadra)}
               dragging={peca.id === draggingId}
               selected={peca.id === selectedId || peca.id === origemSelecionada}
               onPointerDown={handlePecaPointerDown(peca.id)}
@@ -417,10 +460,12 @@ export default function EditorPage() {
             )
           })}
         </QuadraSvg>
+        </div>
 
         <AcoesPainel
           acoes={cena.acoes}
           pecas={cena.pecas}
+          quadra={cena.quadra}
           editandoId={editandoId}
           selecionadaId={acaoSelecionadaId}
           onMoverInstante={moverInstante}
