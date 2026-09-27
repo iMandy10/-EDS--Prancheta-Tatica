@@ -215,7 +215,7 @@ sequenceDiagram
     Frontend-->>Atleta: Salva a chave no localStorage e mostra a lista
 
     Frontend->>API: GET /teams/{id}/plays/published (header X-Chave-Atleta)
-    API->>DB: Busca Plays publicadas do time
+    API->>DB: Valida chave_atleta e busca Plays publicadas do time
     DB-->>API: Lista de jogadas
     API-->>Frontend: 200 lista
 
