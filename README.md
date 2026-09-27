@@ -157,12 +157,12 @@ classDiagram
       +float y
     }
 
-    Team "1" --> "*" Play : possui
+    Team "1" --> "*" Play : possui (consulta manual por team_id, sem relationship() ORM)
     Play "1" *-- "1" Cena : cena_json
     Cena "1" *-- "*" Peca : pecas
     Cena "1" *-- "*" Acao : acoes
-    Acao ..> Peca : origem (por id)
-    Acao "1" --> "0..1" PontoDestino : destino (quando não é peça)
+    Acao ..> Peca : origem / destino (por id)
+    Acao "1" *-- "0..1" PontoDestino : destino (quando não é peça)
 ```
 
 ### Diagrama de sequência
@@ -186,7 +186,7 @@ sequenceDiagram
 
     Treinador->>Frontend: Monta peças e setas na quadra
     Treinador->>Frontend: Clica "Salvar jogada"
-    Frontend->>API: POST /teams/{id}/plays (header X-Chave-Treinador, body: cena)
+    Frontend->>API: POST /teams/{id}/plays (header X-Chave-Treinador, body: titulo, descricao, status, cena)
     API->>DB: Valida chave_treinador do time
     API->>DB: INSERT Play (cena_json)
     DB-->>API: Play criada
