@@ -93,6 +93,59 @@ function FutebolMarkings() {
   )
 }
 
+// Uma ponta da quadra: garrafão, marcações laterais, círculo de lance livre,
+// tabela, aro e a área restritiva (semicírculo pequeno perto da cesta).
+// Garrafão da FIBA: mais comprido (profundidade, no eixo x) do que largo (eixo y).
+const GARRAFAO_PROFUNDIDADE = 170
+const GARRAFAO_LARGURA = 120
+// Raio do arco externo: profundidade + raio do lance livre, pra ele tangenciar
+// exatamente o semicírculo do garrafão (mesmo centro y, sem cruzar nem deixar vão).
+const RAIO_ARCO_EXTERNO = GARRAFAO_PROFUNDIDADE + GARRAFAO_LARGURA / 2
+
+function Cesta({ x, mirror }: { x: number; mirror?: boolean }) {
+  const dir = mirror ? -1 : 1
+  const pontaGarrafao = x + dir * GARRAFAO_PROFUNDIDADE
+  const raioLanceLivre = GARRAFAO_LARGURA / 2
+  const topo = 250 - raioLanceLivre
+  const base = 250 + raioLanceLivre
+  const restritivaX = x + dir * 18
+  const varredura = mirror ? 0 : 1
+
+  return (
+    <>
+      <rect
+        x={mirror ? pontaGarrafao : x}
+        y={topo}
+        width={GARRAFAO_PROFUNDIDADE}
+        height={GARRAFAO_LARGURA}
+        fill="none"
+        stroke="white"
+        strokeWidth={2}
+      />
+      {[100, 130, 160].map((distancia) => {
+        const tx = x + dir * distancia
+        return (
+          <g key={tx}>
+            <line x1={tx} y1={topo} x2={tx} y2={topo - 8} stroke="white" strokeWidth={2} />
+            <line x1={tx} y1={base} x2={tx} y2={base + 8} stroke="white" strokeWidth={2} />
+          </g>
+        )
+      })}
+      {/* círculo de lance livre: só o semicírculo pra fora do garrafão, tracejado */}
+      <path
+        d={`M ${pontaGarrafao} ${topo} A ${raioLanceLivre} ${raioLanceLivre} 0 0 ${varredura} ${pontaGarrafao} ${base}`}
+        fill="none"
+        stroke="white"
+        strokeWidth={2}
+        strokeDasharray="6 6"
+      />
+      <line x1={x + dir * 8} y1={235} x2={x + dir * 8} y2={265} stroke="white" strokeWidth={2} />
+      <circle cx={x + dir * 18} cy={250} r={5} fill="none" stroke="white" strokeWidth={2} />
+      <path d={`M ${restritivaX} 215 A 35 35 0 0 ${varredura} ${restritivaX} 285`} fill="none" stroke="white" strokeWidth={2} />
+    </>
+  )
+}
+
 function BasqueteMarkings() {
   return (
     <>
@@ -100,22 +153,21 @@ function BasqueteMarkings() {
       <line x1={400} y1={20} x2={400} y2={480} stroke="white" strokeWidth={2} />
       <circle cx={400} cy={250} r={50} fill="none" stroke="white" strokeWidth={2} />
 
-      {/* garrafão e círculo de lance livre (raio = metade da largura do garrafão), esquerda */}
-      <rect x={20} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 170 175 A 75 75 0 0 0 170 325" fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 170 175 A 75 75 0 0 1 170 325" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
+      <Cesta x={20} />
+      <Cesta x={780} mirror />
 
-      {/* garrafão e círculo de lance livre, direita */}
-      <rect x={630} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 630 175 A 75 75 0 0 1 630 325" fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 630 175 A 75 75 0 0 0 630 325" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
-
-      <path d="M 20 90 A 260 260 0 0 1 20 410" fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 780 90 A 260 260 0 0 0 780 410" fill="none" stroke="white" strokeWidth={2} />
-
-      {/* tabelas */}
-      <line x1={30} y1={210} x2={30} y2={290} stroke="white" strokeWidth={4} />
-      <line x1={770} y1={210} x2={770} y2={290} stroke="white" strokeWidth={4} />
+      <path
+        d={`M 20 20 A ${RAIO_ARCO_EXTERNO} ${RAIO_ARCO_EXTERNO} 0 0 1 20 480`}
+        fill="none"
+        stroke="white"
+        strokeWidth={2}
+      />
+      <path
+        d={`M 780 20 A ${RAIO_ARCO_EXTERNO} ${RAIO_ARCO_EXTERNO} 0 0 0 780 480`}
+        fill="none"
+        stroke="white"
+        strokeWidth={2}
+      />
     </>
   )
 }
