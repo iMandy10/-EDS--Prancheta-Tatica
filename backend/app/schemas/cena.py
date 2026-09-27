@@ -27,6 +27,8 @@ class Acao(BaseModel):
 
 class Cena(BaseModel):
     quadra: Literal["futebol", "basquete"]
+    # Ausente em jogadas salvas antes desta funcionalidade = "completa".
+    visualizacao: Literal["completa", "meia_quadra"] = "completa"
     pecas: list[Peca]
     acoes: list[Acao] = []
 

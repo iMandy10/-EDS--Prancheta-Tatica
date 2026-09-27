@@ -1,7 +1,7 @@
 import { useEffect, useState, type DragEvent, type PointerEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTeamSession } from '../hooks/useTeamSession'
-import QuadraSvg, { QUADRA_LIMITES } from '../components/QuadraSvg'
+import QuadraSvg, { limitesQuadra } from '../components/QuadraSvg'
 import PecaSvg, { RAIOS } from '../components/PecaSvg'
 import AcaoSvg, { SetaMarkerDefs } from '../components/AcaoSvg'
 import AcoesPainel from '../components/AcoesPainel'
@@ -10,7 +10,7 @@ import SalvarJogadaModal from '../components/SalvarJogadaModal'
 import ChaveAtletaModal from '../components/ChaveAtletaModal'
 import Button from '../components/Button'
 import { FolderOpenIcon, LogOutIcon, TrashIcon } from '../components/icons'
-import type { Acao, Cena, Peca, TipoAcao, TipoPeca } from '../types/cena'
+import type { Acao, Cena, Peca, TipoAcao, TipoPeca, Visualizacao } from '../types/cena'
 import { createPlay, type StatusJogada } from '../lib/api'
 import { clearChaveTreinador } from '../lib/storage'
 import { agruparPorInstante, cabeNoInstante, compactarOrdens } from '../lib/instantes'
@@ -30,7 +30,7 @@ import {
   rotuloPeca,
 } from '../lib/dinamica'
 
-const CENA_VAZIA: Cena = { quadra: 'basquete', pecas: [], acoes: [] }
+const CENA_VAZIA: Cena = { quadra: 'basquete', visualizacao: 'completa', pecas: [], acoes: [] }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -94,6 +94,37 @@ export default function EditorPage() {
   const [modalChaveAberto, setModalChaveAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
+  // Meia quadra usa os mesmos limites da quadra inteira, só com maxX menor (corta na linha de meio).
+  const limites = limitesQuadra(cena?.visualizacao)
+
+  function alternarVisualizacao(nova: Visualizacao) {
+    setCena((prev) => {
+      if (!prev || prev.visualizacao === nova) return prev
+      if (nova === 'completa') return { ...prev, visualizacao: nova }
+
+      const { maxX } = limitesQuadra(nova)
+      const foraDaArea = new Set(prev.pecas.filter((peca) => peca.x > maxX - RAIOS[peca.tipo]).map((peca) => peca.id))
+      if (foraDaArea.size === 0) return { ...prev, visualizacao: nova }
+
+      const confirmado = window.confirm(
+        `Mudar para meia quadra remove ${foraDaArea.size} peça(s) que ficariam fora da área visível. Continuar?`,
+      )
+      if (!confirmado) return prev
+
+      return {
+        ...prev,
+        visualizacao: nova,
+        pecas: acompanharPosse(prev.pecas.filter((peca) => !foraDaArea.has(peca.id))),
+        acoes: compactarOrdens(
+          prev.acoes.filter((acao) => {
+            if (foraDaArea.has(acao.origem)) return false
+            return typeof acao.destino === 'string' ? !foraDaArea.has(acao.destino) : acao.destino.x <= maxX
+          }),
+        ),
+      }
+    })
+    limparInteracao()
+  }
 
   function handleSair() {
     clearChaveTreinador()
@@ -102,7 +133,7 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (team && !cena) {
-      setCena(cenaInicial ?? { quadra: team.modalidade, pecas: [], acoes: [] })
+      setCena(cenaInicial ?? { quadra: team.modalidade, visualizacao: 'completa', pecas: [], acoes: [] })
     }
   }, [team, cena, cenaInicial])
 
@@ -335,8 +366,8 @@ export default function EditorPage() {
     if (modoDesenho && origemSelecionada) {
       const { x, y } = paraCoordenadasSvg(event.currentTarget, event.clientX, event.clientY)
       criarAcao({
-        x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
-        y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
+        x: clamp(x, limites.minX, limites.maxX),
+        y: clamp(y, limites.minY, limites.maxY),
       })
       return
     }
@@ -360,8 +391,8 @@ export default function EditorPage() {
         const raio = RAIOS[peca.tipo]
         return {
           ...peca,
-          x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
-          y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
+          x: clamp(x, limites.minX + raio, limites.maxX - raio),
+          y: clamp(y, limites.minY + raio, limites.maxY - raio),
         }
       })
       // Quem tem a posse leva a bola junto; a própria bola, enquanto é arrastada, fica onde o cursor está.
@@ -381,8 +412,8 @@ export default function EditorPage() {
 
     if (x < 0 || y < 0 || x > width || y > height || naOrigem) return null
     return {
-      x: clamp(x, QUADRA_LIMITES.minX, QUADRA_LIMITES.maxX),
-      y: clamp(y, QUADRA_LIMITES.minY, QUADRA_LIMITES.maxY),
+      x: clamp(x, limites.minX, limites.maxX),
+      y: clamp(y, limites.minY, limites.maxY),
     }
   }
 
@@ -477,8 +508,8 @@ export default function EditorPage() {
       const peca: Peca = {
         id,
         tipo,
-        x: clamp(x, QUADRA_LIMITES.minX + raio, QUADRA_LIMITES.maxX - raio),
-        y: clamp(y, QUADRA_LIMITES.minY + raio, QUADRA_LIMITES.maxY - raio),
+        x: clamp(x, limites.minX + raio, limites.maxX - raio),
+        y: clamp(y, limites.minY + raio, limites.maxY - raio),
       }
       const pecas = [...prev.pecas, peca]
       // A bola colocada na área de um jogador já entra com ele.
@@ -592,6 +623,30 @@ export default function EditorPage() {
             <Button onClick={limparPrancheta} disabled={cena.pecas.length === 0} variant="danger">
               Limpar prancheta
             </Button>
+            <div className="ml-2 flex overflow-hidden rounded-lg ring-1 ring-slate-300">
+              <button
+                type="button"
+                onClick={() => alternarVisualizacao('completa')}
+                className={`px-3 py-1.5 text-sm font-medium ${
+                  (cena.visualizacao ?? 'completa') === 'completa'
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                Quadra inteira
+              </button>
+              <button
+                type="button"
+                onClick={() => alternarVisualizacao('meia_quadra')}
+                className={`px-3 py-1.5 text-sm font-medium ${
+                  cena.visualizacao === 'meia_quadra'
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                Meia quadra
+              </button>
+            </div>
           </div>
 
           <Button onClick={() => setModalSalvarAberto(true)} variant="primary">
@@ -627,6 +682,7 @@ export default function EditorPage() {
         <div className={reproduzindo ? 'pointer-events-none' : undefined}>
         <QuadraSvg
           quadra={cena.quadra}
+          visualizacao={cena.visualizacao ?? 'completa'}
           onPointerDown={handleSvgPointerDown}
           onPointerMove={handleSvgPointerMove}
           onPointerUp={handleSvgPointerUp}
