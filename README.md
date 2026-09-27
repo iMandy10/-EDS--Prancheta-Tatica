@@ -99,6 +99,74 @@ O atleta busca a cena de uma jogada publicada em
 
 ---
 
+## Diagramas UML (documentação preliminar)
+
+Rascunhados com apoio de IA a partir do schema e dos endpoints já implementados, e revisados
+manualmente antes de entrar no README.
+
+### Diagrama de classes
+
+`Team` e `Play` são entidades persistidas (SQLAlchemy). `Cena`, `Peça`, `Ação` e `PontoDestino`
+são o schema Pydantic embutido em `Play.cena_json` — não têm tabela própria.
+
+```mermaid
+classDiagram
+    class Team {
+      +int id
+      +string nome
+      +string modalidade
+      +string chave_treinador
+      +string chave_atleta
+      +datetime created_at
+    }
+
+    class Play {
+      +int id
+      +int team_id
+      +string titulo
+      +string descricao
+      +string status
+      +datetime created_at
+      +datetime updated_at
+    }
+
+    class Cena {
+      +string quadra
+      +string visualizacao
+      +Peca[] pecas
+      +Acao[] acoes
+    }
+
+    class Peca {
+      +string id
+      +string tipo
+      +float x
+      +float y
+      +string posse
+    }
+
+    class Acao {
+      +string id
+      +string tipo
+      +string origem
+      +int ordem
+    }
+
+    class PontoDestino {
+      +float x
+      +float y
+    }
+
+    Team "1" --> "*" Play : possui
+    Play "1" *-- "1" Cena : cena_json
+    Cena "1" *-- "*" Peca : pecas
+    Cena "1" *-- "*" Acao : acoes
+    Acao ..> Peca : origem (por id)
+    Acao "1" --> "0..1" PontoDestino : destino (quando não é peça)
+```
+
+---
+
 ## Executando o projeto
 
 ```bash
