@@ -165,6 +165,62 @@ classDiagram
     Acao "1" --> "0..1" PontoDestino : destino (quando não é peça)
 ```
 
+### Diagrama de sequência
+
+Dois fluxos que atravessam os três módulos: o treinador criando o time e salvando uma jogada,
+e o atleta acessando com a chave e assistindo a uma jogada publicada.
+
+```mermaid
+sequenceDiagram
+    actor Treinador
+    participant Frontend as Frontend (React)
+    participant API as Backend (FastAPI)
+    participant DB as Banco (SQLite)
+
+    Treinador->>Frontend: Preenche nome + modalidade
+    Frontend->>API: POST /teams
+    API->>DB: INSERT Team (gera chave_treinador, chave_atleta)
+    DB-->>API: Team criado
+    API-->>Frontend: 201 Team (chaves)
+    Frontend-->>Treinador: Mostra as chaves e salva chave_treinador no localStorage
+
+    Treinador->>Frontend: Monta peças e setas na quadra
+    Treinador->>Frontend: Clica "Salvar jogada"
+    Frontend->>API: POST /teams/{id}/plays (header X-Chave-Treinador, body: cena)
+    API->>DB: Valida chave_treinador do time
+    API->>DB: INSERT Play (cena_json)
+    DB-->>API: Play criada
+    API-->>Frontend: 201 Play
+    Frontend-->>Treinador: Confirma jogada salva
+```
+
+```mermaid
+sequenceDiagram
+    actor Atleta
+    participant Frontend as Frontend (React)
+    participant API as Backend (FastAPI)
+    participant DB as Banco (SQLite)
+
+    Atleta->>Frontend: Cola a chave_atleta
+    Frontend->>API: GET /teams/access/{chave_atleta}
+    API->>DB: Busca Team por chave_atleta
+    DB-->>API: Team
+    API-->>Frontend: 200 dados do time
+    Frontend-->>Atleta: Salva a chave no localStorage e mostra a lista
+
+    Frontend->>API: GET /teams/{id}/plays/published (header X-Chave-Atleta)
+    API->>DB: Busca Plays publicadas do time
+    DB-->>API: Lista de jogadas
+    API-->>Frontend: 200 lista
+
+    Atleta->>Frontend: Seleciona uma jogada
+    Frontend->>API: GET /teams/{id}/plays/published/{play_id} (header X-Chave-Atleta)
+    API->>DB: Busca Play publicada e valida a chave
+    DB-->>API: Play (cena_json)
+    API-->>Frontend: 200 Play
+    Frontend-->>Atleta: Anima a jogada (play/pause/reiniciar)
+```
+
 ---
 
 ## Executando o projeto
