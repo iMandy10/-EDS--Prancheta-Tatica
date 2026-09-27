@@ -21,7 +21,7 @@ compartilharem com seus atletas.
 
 ## Objetivo do sistema
 
-Treinadores de times amadores e de base explicam jogadas em quadros brancos ou pranchetas físicas, e o registro se perde assim que o treino acaba. Quem faltou não tem acesso, e atletas com dificuldade de visualização espacial não conseguem reconstruir o movimento a partir de um desenho estático com setas. A Prancheta Tática online surge pra permitir que o treinador posicione jogadores e bola sobre a quadra, desenhe as setas de movimentação e passe, e defina a ordem em que cada movimento acontece. As jogadas ficam salvas e o treinador escolhe quais publicar para o time, que acessa por uma chave compartilhada, sem necessidade de cadastro.
+Treinadores de times amadores e de base explicam jogadas em quadros brancos ou pranchetas físicas, e o registro se perde assim que o treino acaba. Quem faltou não tem acesso, e atletas com dificuldade de visualização espacial não conseguem reconstruir o movimento a partir de um desenho estático com setas. A Prancheta Tática online surge pra permitir que o treinador posicione jogadores e bola sobre a quadra, desenhe as setas de movimentação, passe, bloqueio e drible, e defina a ordem em que cada movimento acontece. As jogadas ficam salvas e o treinador escolhe quais publicar para o time, que acessa por uma chave compartilhada, sem necessidade de cadastro.
 
 ---
 
