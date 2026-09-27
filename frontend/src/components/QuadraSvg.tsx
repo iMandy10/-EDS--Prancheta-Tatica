@@ -138,7 +138,9 @@ export default function QuadraSvg({
   return (
     <svg
       viewBox={`0 0 ${largura} ${HEIGHT}`}
-      className="w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10"
+      className={`w-full rounded-xl shadow-card ring-1 ring-black/10 ${
+        visualizacao === 'meia_quadra' ? 'max-w-[250px]' : 'max-w-3xl'
+      }`}
       role="img"
       aria-label={`Quadra de ${quadra}${visualizacao === 'meia_quadra' ? ' (meia quadra)' : ''}`}
       onPointerDown={onPointerDown}
