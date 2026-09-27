@@ -21,7 +21,7 @@ compartilharem com seus atletas.
 
 ## Objetivo do sistema
 
-Treinadores de times amadores e de base explicam jogadas em quadros brancos ou pranchetas físicas, e o registro se perde assim que o treino acaba. Quem faltou não tem acesso, e atletas com dificuldade de visualização espacial não conseguem reconstruir o movimento a partir de um desenho estático com setas. A Prancheta Tática online surge pra permitir que o treinador posicione jogadores e bola sobre a quadra, desenhe as setas de movimentação, passe, bloqueio e drible, e defina a ordem em que cada movimento acontece. As jogadas ficam salvas e o treinador escolhe quais publicar para o time, que acessa por uma chave compartilhada, sem necessidade de cadastro.
+Treinadores de times amadores e de base explicam jogadas em quadros brancos ou pranchetas físicas, e o registro se perde assim que o treino acaba. Quem faltou não tem acesso, e atletas com dificuldade de visualização espacial não conseguem reconstruir o movimento a partir de um desenho estático com setas. A Prancheta Tática online surge pra permitir que o treinador posicione jogadores e bola sobre a quadra, desenhe as setas de movimentação e passe (também bloqueio e drible, exclusivas do basquete), e defina a ordem em que cada movimento acontece. As jogadas ficam salvas e o treinador escolhe quais publicar para o time, que acessa por uma chave compartilhada, sem necessidade de cadastro.
 
 ---
 
@@ -88,7 +88,7 @@ instantes rodam em ordem crescente. Na animação, cada instante dura 1 s. O bac
 cenas em que uma peça faz mais de uma ação no mesmo instante, ou em que mais de uma ação move
 a bola no mesmo instante (passe, drible ou movimentação da própria bola).
 
-No basquete a bola tem **posse**: a peça da bola pode ter o campo opcional `posse` com o `id` do
+Em qualquer modalidade, a bola tem **posse**: a peça da bola pode ter o campo opcional `posse` com o `id` do
 jogador que está com ela (sem o campo, ou `null`, a bola está solta em `x`, `y`). A bola acompanha
 quem tem a posse em qualquer deslocamento, só quem tem a posse passa ou dribla, e o passe entrega a
 posse ao jogador em cuja área de identificação a ponta da seta cai.
@@ -149,6 +149,7 @@ classDiagram
       +string id
       +string tipo
       +string origem
+      +string|PontoDestino destino
       +int ordem
     }
 
@@ -161,7 +162,8 @@ classDiagram
     Play "1" *-- "1" Cena : cena_json
     Cena "1" *-- "*" Peca : pecas
     Cena "1" *-- "*" Acao : acoes
-    Acao ..> Peca : origem / destino (por id)
+    Acao ..> Peca : origem (por id, sempre)
+    Acao ..> Peca : destino (por id, quando não é ponto)
     Acao "1" *-- "0..1" PontoDestino : destino (quando não é peça)
 ```
 
@@ -193,11 +195,17 @@ sequenceDiagram
     Treinador->>Frontend: Monta peças e setas na quadra
     Treinador->>Frontend: Clica "Salvar jogada"
     Frontend->>API: POST /teams/{id}/plays (header X-Chave-Treinador, body: titulo, descricao, status, cena)
-    API->>DB: Valida chave_treinador do time
-    API->>DB: INSERT Play (cena_json)
-    DB-->>API: Play criada
-    API-->>Frontend: 201 Play
-    Frontend-->>Treinador: Confirma jogada salva
+    API->>DB: Busca Team por id
+    DB-->>API: Team
+    alt chave_treinador não bate (comparação em Python, na API)
+        API-->>Frontend: 404 Time não encontrado
+        Frontend-->>Treinador: Mostra erro
+    else chave válida
+        API->>DB: INSERT Play (cena_json)
+        DB-->>API: Play criada
+        API-->>Frontend: 201 Play
+        Frontend-->>Treinador: Confirma jogada salva
+    end
 ```
 
 ```mermaid
@@ -215,7 +223,7 @@ sequenceDiagram
     Frontend-->>Atleta: Salva a chave no localStorage e mostra a lista
 
     Frontend->>API: GET /teams/{id}/plays/published (header X-Chave-Atleta)
-    API->>DB: Valida chave_atleta e busca Plays publicadas do time
+    API->>DB: Busca Team por id, depois busca Plays publicadas (chave_atleta comparada em Python, na API)
     DB-->>API: Lista de jogadas
     API-->>Frontend: 200 lista
 
@@ -226,6 +234,13 @@ sequenceDiagram
     API-->>Frontend: 200 Play
     Frontend-->>Atleta: Anima a jogada (play/pause/reiniciar)
 ```
+
+**Nota sobre onde a validação acontece:** na maioria das rotas com chave (`create_play`, `list_plays`,
+`list_published_plays`), o banco só busca o `Team` pelo `id`, e é o código Python na API que compara
+a chave recebida — o diagrama do treinador mostra esse caminho, incluindo o erro 404, como exemplo; o
+mesmo padrão vale pras outras rotas, só não repetido pra não inflar o diagrama. A exceção é
+`GET /teams/{team_id}/plays/published/{play_id}`, cuja query já filtra pela chave direto no `WHERE`
+(via `join`) — nesse caso o banco participa mesmo da validação, e o diagrama do atleta reflete isso.
 
 ---
 
