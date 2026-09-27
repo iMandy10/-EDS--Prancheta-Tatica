@@ -40,6 +40,25 @@ function Gol({ x, mirror }: { x: number; mirror?: boolean }) {
   )
 }
 
+// Tábuas de madeira clara, como um piso de quadra de basquete de verdade.
+function MadeiraClara() {
+  const faixas = Array.from({ length: 10 }, (_, index) => index)
+  return (
+    <>
+      {faixas.map((index) => (
+        <rect
+          key={index}
+          x={index * 80}
+          y={0}
+          width={80}
+          height={HEIGHT}
+          fill={index % 2 === 0 ? '#e4bb7d' : '#dcae6a'}
+        />
+      ))}
+    </>
+  )
+}
+
 // As marcações sempre desenham a quadra inteira; na meia quadra, o viewBox menor corta a metade
 // distante — a linha de meio já funciona como a borda de fechamento do lado aberto.
 function FutebolMarkings() {
@@ -80,48 +99,21 @@ function BasqueteMarkings() {
       <rect x={20} y={20} width={760} height={460} fill="none" stroke="white" strokeWidth={2} />
       <line x1={400} y1={20} x2={400} y2={480} stroke="white" strokeWidth={2} />
       <circle cx={400} cy={250} r={50} fill="none" stroke="white" strokeWidth={2} />
+
+      {/* garrafão e círculo de lance livre (tracejado na metade de fora), esquerda */}
       <rect x={20} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 170 190 A 60 60 0 0 1 170 310" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
+
+      {/* garrafão e círculo de lance livre, direita */}
       <rect x={630} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
-      <circle cx={170} cy={250} r={25} fill="none" stroke="white" strokeWidth={2} />
-      <circle cx={630} cy={250} r={25} fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 630 190 A 60 60 0 0 0 630 310" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
+
       <path d="M 20 90 A 260 260 0 0 1 20 410" fill="none" stroke="white" strokeWidth={2} />
       <path d="M 780 90 A 260 260 0 0 0 780 410" fill="none" stroke="white" strokeWidth={2} />
+
       {/* tabelas */}
       <line x1={30} y1={210} x2={30} y2={290} stroke="white" strokeWidth={4} />
       <line x1={770} y1={210} x2={770} y2={290} stroke="white" strokeWidth={4} />
-    </>
-  )
-}
-
-function MolduraPrancheta({ largura }: { largura: number }) {
-  const centro = largura / 2
-  return (
-    <>
-      <defs>
-        <linearGradient id="madeira-moldura" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#c98a4f" />
-          <stop offset="50%" stopColor="#a86b37" />
-          <stop offset="100%" stopColor="#8f5a2c" />
-        </linearGradient>
-        <linearGradient id="metal-presilha" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#e2e8f0" />
-          <stop offset="45%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#64748b" />
-        </linearGradient>
-      </defs>
-
-      {/* base de madeira da prancheta, por trás da quadra */}
-      <rect x={-20} y={-58} width={largura + 40} height={578} rx={18} fill="url(#madeira-moldura)" />
-      <rect x={-20} y={-58} width={largura + 40} height={578} rx={18} fill="none" stroke="#6b4423" strokeWidth={1.5} />
-
-      {/* furos de encadernação, no topo */}
-      <circle cx={40} cy={-38} r={5} fill="#5c3a1e" />
-      <circle cx={largura - 40} cy={-38} r={5} fill="#5c3a1e" />
-
-      {/* presilha metálica central */}
-      <rect x={centro - 70} y={-56} width={140} height={40} rx={8} fill="url(#metal-presilha)" stroke="#475569" strokeWidth={1} />
-      <rect x={centro - 50} y={-46} width={100} height={12} rx={4} fill="#334155" />
-      <circle cx={centro} cy={-36} r={6} fill="#cbd5e1" stroke="#475569" strokeWidth={1} />
     </>
   )
 }
@@ -142,12 +134,11 @@ export default function QuadraSvg({
   onPointerUp?: (event: PointerEvent<SVGSVGElement>) => void
 }) {
   const largura = visualizacao === 'meia_quadra' ? MEIA_QUADRA_LARGURA : WIDTH
-  const viewBox = quadra === 'basquete' ? `-20 -58 ${largura + 40} 578` : `0 0 ${largura} ${HEIGHT}`
 
   return (
     <svg
-      viewBox={viewBox}
-      className={quadra === 'basquete' ? 'w-full max-w-3xl' : 'w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10'}
+      viewBox={`0 0 ${largura} ${HEIGHT}`}
+      className="w-full max-w-3xl rounded-xl shadow-card ring-1 ring-black/10"
       role="img"
       aria-label={`Quadra de ${quadra}${visualizacao === 'meia_quadra' ? ' (meia quadra)' : ''}`}
       onPointerDown={onPointerDown}
@@ -155,18 +146,11 @@ export default function QuadraSvg({
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      <defs>
-        <linearGradient id="madeira-quadra" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#d3985f" />
-          <stop offset="100%" stopColor="#b97e46" />
-        </linearGradient>
-      </defs>
-      {quadra === 'basquete' && <MolduraPrancheta largura={largura} />}
       {quadra === 'futebol' ? (
         <FutebolMarkings />
       ) : (
         <>
-          <rect x={0} y={0} width={WIDTH} height={HEIGHT} rx={4} fill="url(#madeira-quadra)" />
+          <MadeiraClara />
           <BasqueteMarkings />
         </>
       )}
