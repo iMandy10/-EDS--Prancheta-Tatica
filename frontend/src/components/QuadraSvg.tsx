@@ -100,13 +100,15 @@ function BasqueteMarkings() {
       <line x1={400} y1={20} x2={400} y2={480} stroke="white" strokeWidth={2} />
       <circle cx={400} cy={250} r={50} fill="none" stroke="white" strokeWidth={2} />
 
-      {/* garrafão e círculo de lance livre (tracejado na metade de fora), esquerda */}
+      {/* garrafão e círculo de lance livre (raio = metade da largura do garrafão), esquerda */}
       <rect x={20} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 170 190 A 60 60 0 0 1 170 310" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
+      <path d="M 170 175 A 75 75 0 0 0 170 325" fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 170 175 A 75 75 0 0 1 170 325" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
 
       {/* garrafão e círculo de lance livre, direita */}
       <rect x={630} y={175} width={150} height={150} fill="none" stroke="white" strokeWidth={2} />
-      <path d="M 630 190 A 60 60 0 0 0 630 310" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
+      <path d="M 630 175 A 75 75 0 0 1 630 325" fill="none" stroke="white" strokeWidth={2} />
+      <path d="M 630 175 A 75 75 0 0 0 630 325" fill="none" stroke="white" strokeWidth={2} strokeDasharray="6 6" />
 
       <path d="M 20 90 A 260 260 0 0 1 20 410" fill="none" stroke="white" strokeWidth={2} />
       <path d="M 780 90 A 260 260 0 0 0 780 410" fill="none" stroke="white" strokeWidth={2} />
@@ -139,7 +141,7 @@ export default function QuadraSvg({
     <svg
       viewBox={`0 0 ${largura} ${HEIGHT}`}
       className={`w-full rounded-xl shadow-card ring-1 ring-black/10 ${
-        visualizacao === 'meia_quadra' ? 'max-w-[250px]' : 'max-w-3xl'
+        visualizacao === 'meia_quadra' ? 'max-w-[404px]' : 'max-w-3xl'
       }`}
       role="img"
       aria-label={`Quadra de ${quadra}${visualizacao === 'meia_quadra' ? ' (meia quadra)' : ''}`}
