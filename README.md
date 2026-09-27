@@ -29,9 +29,9 @@ Treinadores de times amadores e de base explicam jogadas em quadros brancos ou p
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, React Router, Tailwind CSS |
+| Frontend | React 19, TypeScript, Vite, React Router, Tailwind CSS |
 | Renderização | SVG nativo (editor e animação) |
-| Backend | Python 3.12, FastAPI, Uvicorn |
+| Backend | Python 3.11, FastAPI, Uvicorn |
 | ORM / Validação | SQLAlchemy, Pydantic |
 | Banco de dados | SQLite |
 | Controle de versão | Git + GitHub |
@@ -165,6 +165,12 @@ classDiagram
     Acao "1" *-- "0..1" PontoDestino : destino (quando não é peça)
 ```
 
+**Fora do escopo deste diagrama:** os schemas de entrada/saída da API (`TeamCreate`, `TeamResponse`,
+`PlayCreate`, `PlayUpdate`, `PlayResponse`, `PlaySummary`, `TeamAccessResponse`, em `schemas/team.py`,
+`schemas/play.py` e `schemas/access.py`) não aparecem aqui — são projeções finas de `Team`/`Play`
+(ex.: `TeamCreate` só tem `nome` e `modalidade`; `PlaySummary` é `Play` sem `cena_json`) que moldam o
+contrato JSON de cada endpoint, sem acrescentar conceito novo ao domínio.
+
 ### Diagrama de sequência
 
 Dois fluxos que atravessam os três módulos: o treinador criando o time e salvando uma jogada,
@@ -227,8 +233,18 @@ sequenceDiagram
 
 ```bash
 # Backend
-[A ser preenchido]
+cd backend
+python -m venv .venv
+.venv\Scripts\activate        # Windows (bash: source .venv/Scripts/activate)
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 
-# Frontend
-[A ser preenchido]
+# Frontend (em outro terminal)
+cd frontend
+npm install
+npm run dev
 ```
+
+O frontend sobe em `http://localhost:5173` e já aponta pro backend em `http://localhost:8000`
+por padrão (configurável via `VITE_API_URL`). O backend cria o arquivo `prancheta_tatica.db`
+(SQLite) automaticamente na primeira execução.
