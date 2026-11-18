@@ -9,5 +9,9 @@ venv/
 node_modules/
 dist/
 
+# Playwright
+test-results/
+playwright-report/
+
 # Env
 .env
