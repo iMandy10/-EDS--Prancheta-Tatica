@@ -74,3 +74,36 @@ def test_rejeita_pedido_sem_modalidade(client):
 
     assert resposta.status_code == 422
     assert campos_com_erro(resposta) == [["body", "modalidade"]]
+
+
+# GET /teams/{chave_treinador}
+
+
+def test_retoma_sessao_com_a_chave_do_treinador(client, time):
+    resposta = client.get(f"/teams/{time['chave_treinador']}")
+
+    assert resposta.status_code == 200
+    assert resposta.json() == time
+
+
+def test_responde_404_com_chave_inexistente(client):
+    resposta = client.get("/teams/chave-que-nao-existe")
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"detail": "Time não encontrado"}
+
+
+def test_chave_do_atleta_nao_abre_a_sessao_do_treinador(client, time):
+    resposta = client.get(f"/teams/{time['chave_atleta']}")
+
+    assert resposta.status_code == 404
+
+
+def test_com_dois_times_devolve_o_time_da_chave_informada(client, time):
+    outro = criar_time(client, nome="Outro Time", modalidade="basquete").json()
+
+    resposta = client.get(f"/teams/{outro['chave_treinador']}")
+
+    assert resposta.status_code == 200
+    assert resposta.json()["id"] == outro["id"]
+    assert resposta.json()["id"] != time["id"]
