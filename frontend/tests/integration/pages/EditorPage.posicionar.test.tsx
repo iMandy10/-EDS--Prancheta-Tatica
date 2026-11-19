@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { createEvent, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -91,5 +91,60 @@ describe('EditorPage: colocar peças pelo estojo', () => {
     await userEvent.click(remover)
 
     expect(pecasNaQuadra(quadra)).toEqual(['LE@150,70'])
+  })
+})
+
+describe('EditorPage: arrastar peças', () => {
+  // Solta na quadra uma peça arrastada do estojo, com os dados que o estojo põe no arraste.
+  function soltarDoEstojo(quadra: Element, botao: HTMLElement, clientX: number, clientY: number) {
+    const dados = new Map<string, string>()
+    fireEvent.dragStart(botao, { dataTransfer: { setData: (t: string, v: string) => dados.set(t, v) } })
+    const areaDaQuadra = quadra.parentElement!.parentElement!
+    const soltar = createEvent.drop(areaDaQuadra, { dataTransfer: { getData: (t: string) => dados.get(t) ?? '' } })
+    // O jsdom não tem DragEvent, então o clientX/clientY do soltar é posto à mão.
+    Object.defineProperties(soltar, { clientX: { value: clientX }, clientY: { value: clientY } })
+    fireEvent(areaDaQuadra, soltar)
+  }
+
+  function arrastarNaQuadra(quadra: Element, peca: Element, clientX: number, clientY: number) {
+    fireEvent.pointerDown(peca)
+    fireEvent.pointerMove(quadra, { clientX, clientY })
+    fireEvent.pointerUp(quadra, { clientX, clientY })
+  }
+
+  it('soltar uma peça do estojo na quadra coloca ela onde foi solta', async () => {
+    const quadra = await abrirEditor('basquete')
+
+    soltarDoEstojo(quadra, estojo('Time A')[2], 300, 200)
+
+    expect(pecasNaQuadra(quadra)).toEqual(['3@300,200'])
+  })
+
+  it('soltar perto da borda deixa a peça inteira dentro da quadra', async () => {
+    const quadra = await abrirEditor('basquete')
+
+    soltarDoEstojo(quadra, estojo('Time A')[0], 5, 495)
+
+    // Limites 20..780 x 20..480, menos o raio do jogador (16).
+    expect(pecasNaQuadra(quadra)).toEqual(['1@36,464'])
+  })
+
+  it('arrastar uma peça na quadra move ela e, depois de soltar, ela para', async () => {
+    const quadra = await abrirEditor('basquete')
+    soltarDoEstojo(quadra, estojo('Time A')[0], 300, 200)
+
+    arrastarNaQuadra(quadra, quadra.querySelector('g[transform^="translate"]')!, 420, 310)
+    fireEvent.pointerMove(quadra, { clientX: 600, clientY: 100 })
+
+    expect(pecasNaQuadra(quadra)).toEqual(['1@420,310'])
+  })
+
+  it('arrastar para fora da quadra segura a peça na borda', async () => {
+    const quadra = await abrirEditor('basquete')
+    soltarDoEstojo(quadra, estojo('Time B')[0], 300, 200)
+
+    arrastarNaQuadra(quadra, quadra.querySelector('g[transform^="translate"]')!, 900, -50)
+
+    expect(pecasNaQuadra(quadra)).toEqual(['1@764,36'])
   })
 })
