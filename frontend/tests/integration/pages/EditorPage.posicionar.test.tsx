@@ -148,3 +148,55 @@ describe('EditorPage: arrastar peças', () => {
     expect(pecasNaQuadra(quadra)).toEqual(['1@764,36'])
   })
 })
+
+describe('EditorPage: limpar a prancheta e meia quadra', () => {
+  // A1 (GOL, x=45) e A2 (LE, x=150) ficam antes da linha do meio (x=400); B1 (GOL, x=755) fica depois dela.
+  async function editorComTresPecas() {
+    const quadra = await abrirEditor()
+    for (const botao of [estojo('Time A')[0], estojo('Time A')[1], estojo('Time B')[0]]) await userEvent.click(botao)
+    return quadra
+  }
+
+  it('"Limpar prancheta" tira todas as peças, só depois de confirmar', async () => {
+    const quadra = await editorComTresPecas()
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar prancheta' }))
+    expect(pecasNaQuadra(quadra)).toHaveLength(3)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar prancheta' }))
+    expect(pecasNaQuadra(quadra)).toEqual([])
+    expect(confirmar).toHaveBeenCalledTimes(2)
+  })
+
+  it('ir para meia quadra, confirmando, tira só as peças depois da linha do meio', async () => {
+    await editorComTresPecas()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Meia quadra' }))
+
+    const meiaQuadra = screen.getByRole('img', { name: 'Quadra de futebol (meia quadra)' })
+    expect(pecasNaQuadra(meiaQuadra)).toEqual(['GOL@45,250', 'LE@150,70'])
+  })
+
+  it('cancelar a troca para meia quadra mantém a quadra inteira e as peças', async () => {
+    const quadra = await editorComTresPecas()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Meia quadra' }))
+
+    expect(screen.getByRole('img', { name: 'Quadra de futebol' })).toBe(quadra)
+    expect(pecasNaQuadra(quadra)).toHaveLength(3)
+  })
+
+  it('sem peças depois da linha do meio, troca para meia quadra sem perguntar', async () => {
+    await abrirEditor()
+    await userEvent.click(estojo('Time A')[0])
+    const confirmar = vi.spyOn(window, 'confirm')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Meia quadra' }))
+
+    expect(confirmar).not.toHaveBeenCalled()
+    expect(pecasNaQuadra(screen.getByRole('img', { name: 'Quadra de futebol (meia quadra)' }))).toEqual(['GOL@45,250'])
+  })
+})
