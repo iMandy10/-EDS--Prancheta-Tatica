@@ -244,7 +244,9 @@ mesmo padrão vale pras outras rotas, só não repetido pra não inflar o diagra
 
 ---
 
-## Executando o projeto
+## Executando o projeto e os testes
+
+### Projeto
 
 ```bash
 # Backend
@@ -263,3 +265,56 @@ npm run dev
 O frontend sobe em `http://localhost:5173` e já aponta pro backend em `http://localhost:8000`
 por padrão (configurável via `VITE_API_URL`). O backend cria o arquivo `prancheta_tatica.db`
 (SQLite) automaticamente na primeira execução.
+
+### Testes
+
+| Tipo | Ferramenta | Pasta | O que é real e o que é falso |
+|---|---|---|---|
+| Unidade (backend) | pytest | `backend/tests/unit/` | schemas Pydantic chamados direto, sem HTTP nem banco |
+| Integração (backend) | pytest + `TestClient` | `backend/tests/integration/` | rota, schema e SQLAlchemy reais, com SQLite em memória limpo a cada teste |
+| Unidade (frontend) | Vitest + Testing Library | `frontend/tests/unit/` | funções de `lib/`, hooks e componentes isolados; API e callbacks falsos |
+| Integração (frontend) | Vitest + Testing Library | `frontend/tests/integration/` | páginas inteiras com rotas, hooks e `api.ts` reais; só o `fetch` é falso |
+| E2E | Playwright (Chromium) | `frontend/e2e/` | nada é falso: navegador, frontend e backend de verdade, com banco próprio |
+
+A meta de cobertura é **80%** de linhas, medida separadamente no backend e no frontend. Os dois
+comandos de cobertura falham se a meta não for atingida.
+
+#### Backend
+
+```bash
+cd backend
+.venv\Scripts\activate        # Windows (bash: source .venv/Scripts/activate)
+pip install -r requirements-dev.txt
+
+python -m pytest tests/unit          # só unidade
+python -m pytest tests/integration   # só integração
+python -m pytest --cov=app --cov-report=term-missing --cov-report=html   # tudo + cobertura
+```
+
+O relatório de cobertura fica em `backend/htmlcov/index.html`. Os testes nunca tocam o
+`prancheta_tatica.db`: cada teste cria e apaga o próprio banco em memória (`tests/conftest.py`).
+
+#### Frontend
+
+```bash
+cd frontend
+npm install
+
+npm run test:unit          # só unidade
+npm run test:integration   # só integração
+npm run coverage           # tudo + cobertura (relatório em frontend/coverage/)
+```
+
+#### E2E
+
+```bash
+cd frontend
+npx playwright install chromium   # só na primeira vez: baixa o navegador de teste
+npm run e2e                       # roda os testes no terminal
+npm run e2e:ui                    # abre a interface do Playwright para ver cada passo
+```
+
+O Playwright sobe sozinho o backend na porta **8001** (banco `backend/e2e.db`, apagado a cada
+execução) e o frontend na porta **5174**, para não conflitar com o ambiente de desenvolvimento
+(8000 e 5173). O backend precisa ter a `.venv` criada com as dependências instaladas. Cada teste
+cria os próprios dados, então eles não dependem uns dos outros nem da ordem.
