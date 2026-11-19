@@ -21,7 +21,7 @@ export function useAnimacao(cena: Cena, aoTerminar?: () => void) {
     let frame = 0
     let anterior = performance.now()
     const avancar = (agora: number) => {
-      tempoRef.current = Math.min(tempoRef.current + agora - anterior, duracao)
+      tempoRef.current = Math.min(tempoRef.current + Math.max(agora - anterior, 0), duracao)
       anterior = agora
       setTempo(tempoRef.current)
       if (tempoRef.current >= duracao) {
