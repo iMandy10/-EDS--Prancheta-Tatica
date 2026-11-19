@@ -28,9 +28,11 @@ export async function abrirEditor(extras: Record<string, RespostaFalsa> = {}) {
   return { quadra, fetchFalso }
 }
 
-// Desenha uma seta como o treinador: escolhe a ferramenta, aperta na peça e solta em (x, y).
+// Desenha uma seta como o treinador: escolhe a ferramenta (se ainda não estiver ativa; clicar de novo
+// desligaria), aperta na peça e solta em (x, y).
 export async function desenhar(quadra: Element, ferramenta: string, peca: Element, x: number, y: number) {
-  await userEvent.click(screen.getByRole('button', { name: ferramenta }))
+  const botao = screen.getByRole('button', { name: ferramenta })
+  if (botao.getAttribute('aria-pressed') !== 'true') await userEvent.click(botao)
   fireEvent.pointerDown(peca)
   fireEvent.pointerUp(quadra, { clientX: x, clientY: y })
 }
