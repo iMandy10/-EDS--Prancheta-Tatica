@@ -97,3 +97,60 @@ describe('CreateTeamPage: criar time', () => {
     expect(getChaveTreinador()).toBeNull()
   })
 })
+
+describe('CreateTeamPage: entrar com a chave de treinador', () => {
+  const campoChave = () => screen.getByLabelText('Já tenho um time — colar minha chave de treinador')
+
+  it('com chave válida, retoma a sessão e mostra o time', async () => {
+    backendFalso({ 'GET /teams/chave-do-treinador': { status: 200, corpo: TIME } })
+    abrirSite()
+
+    await userEvent.type(campoChave(), '  chave-do-treinador ')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo de volta!' })).toBeInTheDocument()
+    expect(screen.getByText('Furacão FC')).toBeInTheDocument()
+    expect(getChaveTreinador()).toBe('chave-do-treinador')
+  })
+
+  it('com chave inválida, mostra o erro e não inicia sessão', async () => {
+    backendFalso({ 'GET /teams/chave-errada': { status: 404 } })
+    abrirSite()
+
+    await userEvent.type(campoChave(), 'chave-errada')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByText('Chave inválida. Confira e tente novamente.')).toBeInTheDocument()
+    expect(getChaveTreinador()).toBeNull()
+  })
+
+  it('com o campo vazio, pede a chave sem chamar o servidor', async () => {
+    const fetchFalso = backendFalso({})
+    abrirSite()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(screen.getByText('Cole sua chave de treinador.')).toBeInTheDocument()
+    expect(fetchFalso).not.toHaveBeenCalled()
+  })
+})
+
+describe('tela inicial', () => {
+  it('quem já tem sessão vai direto para o "Bem-vindo de volta!"', async () => {
+    localStorage.setItem('prancheta_tatica:chave_treinador', 'chave-do-treinador')
+    backendFalso({ 'GET /teams/chave-do-treinador': { status: 200, corpo: TIME } })
+    abrirSite()
+
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo de volta!' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Criar novo time' })).not.toBeInTheDocument()
+  })
+
+  it('o atalho "É atleta?" leva para a entrada do atleta', async () => {
+    backendFalso({})
+    abrirSite()
+
+    await userEvent.click(screen.getByRole('button', { name: 'É atleta? Acesse as jogadas do seu time' }))
+
+    expect(screen.getByRole('heading', { name: 'Entrar como atleta' })).toBeInTheDocument()
+  })
+})
