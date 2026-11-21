@@ -100,6 +100,7 @@ describe('EditorPage: pontos da jogada e posse da bola', () => {
 
 describe('EditorPage: reprodução da jogada', () => {
   it('o play no fim da jogada recomeça do início', async () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
     abrirEditor(CENA)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Play' }))
@@ -109,6 +110,7 @@ describe('EditorPage: reprodução da jogada', () => {
   })
 
   it('o play a partir de um ponto começa dali', async () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
     abrirEditor(CENA)
     await userEvent.click((await painel()).getByText('Instante 2'))
 
